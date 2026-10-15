@@ -2,6 +2,8 @@
 
 An independent desktop Markdown notebook with encrypted Google Drive sync. Built for macOS, Windows, and Linux using Tauri 2, React, CodeMirror 6, and Rust.
 
+**Mostly vibe coded with AI assistance.** Much of the implementation was generated using AI tools, guided by the maintainer's ideas, prompts and feedback. It started as a personal project to bring together the note-taking features the maintainer wanted.
+
 **Public alpha.** Local notes and attachments are plaintext. Encryption protects the copies sent to Google Drive, including revision history. Google can see names, folder structure, file sizes, timestamps, and activity. No note content goes to an AI service; the application has no backend service or telemetry.
 
 ## Features
@@ -90,4 +92,4 @@ Run `npm run screenshots:site`, `npm run launch:prepare`, `npm run launch:verify
 
 GPL-3.0-or-later; see [LICENSE](LICENSE). Commercial use is allowed. Distributed derivatives must comply with the GPL, including source availability. Third-party dependencies keep their own licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-This application was developed with AI assistance. It is an independent implementation: Joplin, Obsidian, and Zettlr informed the feature goals, without copying their code, assets, or UI. Encryption uses existing cryptographic libraries. Contributions follow [CONTRIBUTING.md](CONTRIBUTING.md).
+This application is mostly vibe coded with AI assistance. It is an independent implementation: Joplin, Obsidian, and Zettlr informed the feature goals, without copying their code, assets, or UI. Encryption uses existing cryptographic libraries. Contributions follow [CONTRIBUTING.md](CONTRIBUTING.md).
