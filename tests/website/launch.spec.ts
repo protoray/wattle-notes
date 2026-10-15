@@ -32,7 +32,7 @@ test('landing page is usable, theme previews work, and downloads match their che
   );
   expect((await request.get('/downloads/wattle-notes-macos-arm64.zip')).status()).toBe(404);
   expect((await request.get('/downloads/wattle-notes-source.zip')).status()).toBe(404);
-  await expect(page.getByRole('link', { name: /Support the project/ })).toHaveCount(
+  await expect(page.getByRole('link', { name: /Buy me a coffee/ })).toHaveCount(
     release.supportUrl ? 1 : 0,
   );
   await page.getByRole('button', { name: 'Charcoal', exact: true }).click();
@@ -99,7 +99,7 @@ test('an explicitly configured support link is offered without adding a checkout
     route.fulfill({ json: { ...release, supportUrl: 'https://example.test/support' } }),
   );
   await page.goto('/');
-  const support = page.getByRole('link', { name: /Support the project/ });
+  const support = page.getByRole('link', { name: /Buy me a coffee/ });
   await expect(support).toBeVisible();
   await expect(support).toHaveAttribute('href', 'https://example.test/support');
   await expect(page.locator('form')).toHaveCount(0);

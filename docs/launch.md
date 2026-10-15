@@ -40,6 +40,6 @@ The live `wattlenotes.app` site currently runs on WordPress/Oxygen. Pushing this
 
 ## Optional support
 
-The first monetization hook is an optional external support link. Enter your own public HTTPS support page in `supportUrl`, regenerate the kit, and verify that the support button opens the intended destination. With no URL configured, there is no donation button, payment collection, account, or subscription.
+The optional external support link is configured as [Buy me a coffee](https://buymeacoffee.com/wattlenotes.app) in `website/launch.json` and works from the landing page without JavaScript. GitHub's Sponsor button uses the same page through `.github/FUNDING.yml`. Support is optional; Wattle Notes remains free and open source. To change the destination, update `supportUrl` and the default HTML link, regenerate the kit, and verify the destination. With no URL configured, remove the default support link too.
 
 This keeps the app useful as FOSS. Charging for a service or accepting support does not need to change the free local notebook. The current implementation does not promise paid features or support contracts.

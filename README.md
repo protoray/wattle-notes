@@ -88,6 +88,10 @@ The static launch website includes screenshot theme previews, privacy informatio
 
 Run `npm run screenshots:site`, `npm run launch:prepare`, `npm run launch:verify -- --against-workspace`, then `npm run test:site` after building the Mac app. The deployable directory is `website/dist/`. See [the launch guide](docs/launch.md) for prerequisites, verification and remaining public-release gates.
 
+## Support the project
+
+If you find Wattle Notes useful, you can [buy me a coffee](https://buymeacoffee.com/wattlenotes.app). Support is optional; the app remains free and open source.
+
 ## License and provenance
 
 GPL-3.0-or-later; see [LICENSE](LICENSE). Commercial use is allowed. Distributed derivatives must comply with the GPL, including source availability. Third-party dependencies keep their own licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
