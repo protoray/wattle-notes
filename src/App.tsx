@@ -942,6 +942,7 @@ export default function App() {
                       setDraft(content);
                     }}
                     onLink={(target, wiki) => void openLink(target, wiki)}
+                    onPasteImageFiles={native ? onPasteImageFiles : undefined}
                   />
                 )}
                 {mode === 'split' && (

@@ -10,28 +10,33 @@ import {
 } from '@codemirror/view';
 import { renderMarkdown } from './markdown';
 import { hydrateLocalImages } from './localImages';
+import { Lexer, marked, type Tokens } from 'marked';
+
+// CodeMirror can transfer a widget's DOM to a new equal WidgetType instance.
+// Keep the resource owner on that DOM, rather than the discarded instance.
+const imageCleanups = new WeakMap<HTMLElement, () => void>();
 
 class ImageWidget extends WidgetType {
-  private cleanup?: () => void;
   constructor(
-    readonly source: string,
+    readonly html: string,
     readonly noteId: string,
   ) {
     super();
   }
   eq(other: ImageWidget) {
-    return this.source === other.source && this.noteId === other.noteId;
+    return this.html === other.html && this.noteId === other.noteId;
   }
   toDOM() {
     const root = document.createElement('span');
     root.className = 'cm-live-image';
     root.title = 'Click to edit image Markdown';
-    root.innerHTML = renderMarkdown(this.source);
-    this.cleanup = hydrateLocalImages(root, this.noteId);
+    root.innerHTML = this.html;
+    imageCleanups.set(root, hydrateLocalImages(root, this.noteId));
     return root;
   }
-  destroy() {
-    this.cleanup?.();
+  destroy(dom: HTMLElement) {
+    imageCleanups.get(dom)?.();
+    imageCleanups.delete(dom);
   }
   ignoreEvent() {
     return false;
@@ -87,6 +92,8 @@ class TaskWidget extends WidgetType {
 // frontmatter and unsupported syntax must survive even a single-character edit unchanged.
 export function liveDecorations(view: EditorView, noteId: string): DecorationSet {
   const state = view.state;
+  const imageLexer = new Lexer();
+  imageLexer.tokens.links = marked.lexer(state.doc.toString()).links;
   const ranges: Range<Decoration>[] = [];
   const add = (from: number, to: number, decoration: Decoration) => {
     if (from < to) ranges.push(decoration.range(from, to));
@@ -123,8 +130,19 @@ export function liveDecorations(view: EditorView, noteId: string): DecorationSet
       if (name === 'Strikethrough') add(from, to, Decoration.mark({ class: 'cm-live-strike' }));
       if (name === 'InlineCode') add(from, to, Decoration.mark({ class: 'cm-live-code' }));
       if (name === 'Image' && !text.includes('\n')) {
-        if (!active(from, to))
-          add(from, to, Decoration.replace({ widget: new ImageWidget(text, noteId) }));
+        if (!active(from, to)) {
+          // Resolve reference images against the complete note before rendering
+          // this fragment. This changes presentation only, never the source.
+          const token = imageLexer
+            .inlineTokens(text)
+            .find((value): value is Tokens.Image => value.type === 'image');
+          if (token) {
+            const label = token.text.replace(/([\\[\]])/g, '\\$1');
+            const href = token.href.replace(/</g, '%3C').replace(/>/g, '%3E');
+            const html = renderMarkdown(`![${label}](<${href}>)`);
+            add(from, to, Decoration.replace({ widget: new ImageWidget(html, noteId) }));
+          }
+        }
         return false;
       }
       if (name === 'Link') {
@@ -136,7 +154,11 @@ export function liveDecorations(view: EditorView, noteId: string): DecorationSet
           .getChildren('LinkMark')
           .find((mark) => state.sliceDoc(mark.from, mark.to) === ']');
         if (url && first && closing && labelEnd) {
-          const target = state.sliceDoc(url.from, url.to);
+          const rawTarget = state.sliceDoc(url.from, url.to);
+          const target =
+            rawTarget.startsWith('<') && rawTarget.endsWith('>')
+              ? rawTarget.slice(1, -1)
+              : rawTarget;
           const attrs = linkAttributes(target, false);
           add(
             first.to,

@@ -11,7 +11,7 @@ An independent desktop Markdown notebook with encrypted Google Drive sync. Built
 - Ordinary Markdown folders; stable note IDs and tags in YAML frontmatter.
 - Writing, split preview, and directly editable reading views; keyboard shortcuts and five saved appearance themes.
 - Local full-text search, wiki links, relative Markdown links, and backlinks.
-- Attachment imports and bounded local image previews. Remote images are blocked.
+- Attachment imports, clipboard image paste, and bounded local image previews in Split and Read. Remote images are blocked.
 - Journaled saves, external-file scanning, Markdown import/export, and retained history.
 - Passphrase-protected encryption with an independent recovery key.
 - Native Google OAuth, encrypted resumable uploads, immutable sync history, and a readable encrypted mirror.
