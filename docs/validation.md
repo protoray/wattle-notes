@@ -72,12 +72,22 @@ The updated 15.54 MiB macOS app rebuilt and launched successfully. Native UI tes
 
 The launch verifier is now a saved command, with archive traversal/alias, duplicate-entry and symlink rejection tests. Source filtering also excludes Python bytecode/cache directories. Regenerate and verify the upload kit after source changes using the commands in `launch.md`.
 
+## Image rendering, clipboard paste and editable Read view — 15 October 2026
+
+Three isolated agent tasks were integrated on `codex/images-and-editable-read`. Local attachment paths are decoded once before vault-confined lookup, and the native reader returns the raster MIME type for Blob URLs. Tests cover imported names containing spaces, Unicode, percent signs, hashes and parentheses, the 10 MiB inline limit, symlinks, and URL cleanup. A browser test decodes an actual PNG under the app's image CSP while remote images remain blocked.
+
+Clipboard images are stored as indexed local attachments and inserted at the mapped selection. Tests cover type/size rejection, note/notebook changes during import, ordinary text paste, concurrent typing and undo. Write, Split and Read share one persistent CodeMirror instance, so switching views retains pending paste and undo history. Read provides direct editing, formatting controls and shortcuts without HTML-to-Markdown conversion; complex code/table/HTML blocks remain literal Markdown. Regression tests also cover reference images, reference-definition changes, angle-wrapped link URLs and resource cleanup after equal widget DOM reuse.
+
+The combined implementation passed 61 frontend tests, six Node tests, 41 Rust integration tests, seven desktop/module tests, strict desktop/all-target Clippy, frontend lint and ten browser tests. Existing dependency versions were retained; already-locked CodeMirror packages are now declared directly.
+
+A separately identified macOS QA build opened only a new synthetic notebook. Native WebKit displayed images with encoded filenames. Copy Image through the native context menu followed by normal Paste in both Write and Read created two PNG attachments; a direct Read edit was saved in the Markdown file. The primary app's remembered-notebook setting had an identical fingerprint before and after testing. These are local editor/image checks and do not establish live cloud acceptance or signing.
+
 ## Outstanding public-release checks
 
 - Live Nextcloud backup and restore plus actual OS credential storage still require a configured test service. This is optional provider work; the user does not have Nextcloud and it is not a blocker for continuing local/Google features.
 - Live Google OAuth and Google Drive require a configured Desktop OAuth client and owner consent. All completed Drive sync scenarios used the injectable transport test double.
 - Windows and Linux native build/package/smoke checks were not executed on this Mac. The repository includes CI jobs for them.
 - The x64 Mac check compiles the desktop code but does not establish packaged launch behavior on an Intel Mac.
-- Public source hosting, production OAuth consent preparation, signing/notarization, and independent security review remain release work. The macOS bundle is a development alpha.
+- Production OAuth consent preparation, signing/notarization, and independent security review remain release work. The macOS bundle is a development alpha.
 
 Follow `docs/release.md` before distributing the app as a supported public release.
