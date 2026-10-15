@@ -1,0 +1,64 @@
+[package]
+name = "wattle-notes"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-or-later"
+description = "Offline Markdown notes with encrypted Google Drive sync"
+rust-version = "1.90"
+
+[lib]
+name = "notes_core"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "wattle-notes"
+path = "src/main.rs"
+required-features = ["desktop"]
+
+[features]
+default = ["desktop"]
+desktop = ["dep:tauri", "dep:tauri-plugin-dialog", "dep:tauri-build"]
+
+[build-dependencies]
+tauri-build = { version = "2", optional = true , features = [] }
+
+[dependencies]
+argon2 = "0.5"
+async-trait = "0.1"
+base64 = "0.22"
+chacha20poly1305 = { version = "0.10", features = ["stream"] }
+diffy = "0.4"
+fs2 = "0.4"
+hex = "0.4"
+keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
+open = "5"
+quick-xml = "0.42"
+rand = "0.8"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "stream"] }
+rusqlite = { version = "0.32", features = ["bundled"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+sha2 = "0.10"
+tauri = { version = "2", optional = true , features = [] }
+tauri-plugin-dialog = { version = "2", optional = true }
+thiserror = "2"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "io-util", "time", "sync", "fs"] }
+tokio-util = { version = "0.7", features = ["io"] }
+url = "2"
+uuid = { version = "1", features = ["v4", "v5", "serde"] }
+walkdir = "2"
+zeroize = { version = "1", features = ["derive"] }
+tempfile = "3"
+
+[dev-dependencies]
+tempfile = "3"
+
+[[test]]
+name = "core"
+path = "../tests/core.rs"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true

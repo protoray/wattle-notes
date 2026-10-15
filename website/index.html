@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="A calmer Markdown notebook. Plain files on your computer, five comfortable themes, and optional encrypted cloud storage. Free and open source."
+    />
+    <meta name="theme-color" content="#f6f3ed" />
+    <meta property="og:title" content="Wattle Notes — your words, your files" />
+    <meta
+      property="og:description"
+      content="A calmer Markdown notebook. Free, open source, and yours to keep."
+    />
+    <meta property="og:type" content="website" />
+    <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+    <title>Wattle Notes — your words, your files</title>
+    <script src="./site.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header wrap">
+      <a class="wordmark" href="./" aria-label="Wattle Notes home"
+        ><img src="./icon.svg" alt="" width="30" height="30" />wattle notes<span class="alpha"
+          >alpha</span
+        ></a
+      >
+      <nav aria-label="Main navigation">
+        <a href="#details">The notebook</a><a href="#download">Get the alpha</a
+        ><a href="./getting-started/" class="nav-cta"
+          >Getting started <span aria-hidden="true">↗</span></a
+        >
+      </nav>
+    </header>
+    <main id="main">
+      <section class="hero wrap">
+        <div class="hero-copy">
+          <p class="eyebrow"><span class="little-dot"></span> A small, independent notebook</p>
+          <h1>A little space<br />for your thoughts.</h1>
+          <p class="intro">
+            Write in plain Markdown. Connect an idea. Find it again.<br class="desktop-break" />
+            Keep your words in files you own.
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="#download"
+              >Get the Mac alpha <span aria-hidden="true">↓</span></a
+            ><a class="text-link" href="./getting-started/"
+              >Getting started <span aria-hidden="true">↗</span></a
+            >
+          </div>
+          <p class="hero-footnote">Free and open source. No account needed for local notes.</p>
+        </div>
+        <div class="margin-note" aria-hidden="true">
+          <span>Less noise.<br />More room to think.</span
+          ><svg viewBox="0 0 110 90"><path d="M95 8C50 2 80 70 13 67m0 0 15-12m-15 12 19 7" /></svg>
+        </div>
+      </section>
+      <section class="product wrap" aria-label="Explore the notebook themes">
+        <div class="product-toolbar">
+          <p><span class="little-dot"></span> Make yourself at home</p>
+          <div class="theme-picker" role="group" aria-label="Preview a theme">
+            <button type="button" data-preview="light" aria-pressed="false">Paper</button
+            ><button type="button" data-preview="dark" aria-pressed="true">Charcoal</button
+            ><button type="button" data-preview="midnight" aria-pressed="false">Midnight</button
+            ><button type="button" data-preview="sepia" aria-pressed="false">Sepia</button
+            ><button type="button" data-preview="forest" aria-pressed="false">Forest</button>
+          </div>
+        </div>
+        <div class="app-shot">
+          <img
+            id="app-preview"
+            src="./assets/app-dark.png"
+            width="1320"
+            height="860"
+            alt="Wattle Notes in the Charcoal theme, showing a Markdown notebook with folders, search and a reading view"
+            fetchpriority="high"
+          />
+        </div>
+        <p class="image-caption">
+          The actual app, with example notes. Preview the five themes above.
+        </p>
+      </section>
+      <section class="details wrap" id="details">
+        <div class="section-label">
+          <span>01 / THE NOTEBOOK</span>
+          <h2>Ordinary files.<br />Thoughtfully connected.</h2>
+        </div>
+        <div class="detail-list">
+          <article>
+            <span class="detail-number">01</span>
+            <div>
+              <h3>Your writing has a home.</h3>
+              <p>
+                Notes are Markdown files in a folder you choose. Bring existing notes, add
+                attachments, and export your notebook whenever you like.
+              </p>
+            </div>
+          </article>
+          <article>
+            <span class="detail-number">02</span>
+            <div>
+              <h3>Leave a trail between ideas.</h3>
+              <p>
+                Wiki links, backlinks, tags and local search help you find the thought you were
+                looking for. Switch between writing, split preview and reading.
+              </p>
+            </div>
+          </article>
+          <article>
+            <span class="detail-number">03</span>
+            <div>
+              <h3>Keep a little history.</h3>
+              <p>
+                Autosave and retained revisions help you pick up where you left off. Deleted notes
+                can be recovered from history.
+              </p>
+            </div>
+          </article>
+          <article>
+            <span class="detail-number">04</span>
+            <div>
+              <h3>Comfort is a preference.</h3>
+              <p>
+                Five themes, including neutral Charcoal, deep Midnight and warm Sepia. Your light
+                and dark choices stay with you.
+              </p>
+            </div>
+          </article>
+        </div>
+      </section>
+      <section class="privacy-section">
+        <div class="wrap privacy-layout">
+          <div>
+            <p class="eyebrow">Your words. Your files.</p>
+            <h2>Start local.<br />Connect when you choose.</h2>
+          </div>
+          <div>
+            <p>
+              Local writing works without a login. The app has no telemetry or AI service sending
+              your notes elsewhere.
+            </p>
+            <p>
+              Optional Google Drive sync encrypts note contents before upload. Nextcloud / WebDAV is
+              a separate, optional encrypted backup option.
+            </p>
+            <p class="small-print">
+              Local files are unencrypted. Google can see filenames and folders. Cloud features are
+              in alpha and still need live service validation; the current downloadable build
+              requires developer Google setup.
+            </p>
+            <a class="text-link" href="./privacy/"
+              >Read the privacy details <span aria-hidden="true">↗</span></a
+            >
+          </div>
+        </div>
+      </section>
+      <section class="download-section wrap" id="download">
+        <div class="section-label">
+          <span>02 / AN EARLY START</span>
+          <h2>A notebook in progress.<br />Come try it.</h2>
+          <p>
+            Wattle Notes is an early alpha. Start with a test folder and keep a separate backup of
+            important writing.
+          </p>
+        </div>
+        <div class="download-card">
+          <p class="release-badge">macOS · Apple Silicon · developer alpha</p>
+          <h3>Wattle Notes <span data-version>0.1.0</span></h3>
+          <p>
+            Local Markdown notes, links, history and five themes. This build is unsigned and not
+            notarized. Google sign-in is not preconfigured.
+          </p>
+          <a class="button primary download-link" href="./downloads/wattle-notes-macos-arm64.zip"
+            >Download Mac alpha <span aria-hidden="true">↓</span></a
+          >
+          <p class="download-meta">
+            <span data-download-size></span>
+            <a href="./downloads/SHA256SUMS.txt">SHA-256 checksums</a>
+          </p>
+          <hr />
+          <div class="source-row">
+            <div>
+              <strong>Prefer to build it yourself?</strong>
+              <p>GPL-3.0-or-later. Windows and Linux packaging still need platform testing.</p>
+            </div>
+            <a class="text-link source-link" href="./downloads/wattle-notes-source.zip"
+              >Get the source <span aria-hidden="true">↗</span></a
+            >
+          </div>
+          <a class="text-link" href="./getting-started/"
+            >Getting started &amp; alpha limitations <span aria-hidden="true">↗</span></a
+          >
+        </div>
+      </section>
+      <section class="open-source wrap">
+        <p class="eyebrow">Small app. Open future.</p>
+        <h2>Free to use.<br />Open to make your own.</h2>
+        <div>
+          <p>
+            Wattle Notes is independent, free and open source. No subscription is required to use
+            this alpha.
+          </p>
+          <p>
+            Useful feedback and thoughtful contributions are welcome. The source download includes
+            build instructions and the license.
+          </p>
+          <p>
+            <a class="text-link repository-link" hidden
+              >Browse the repository <span aria-hidden="true">↗</span></a
+            ><a class="text-link feedback-link" hidden
+              >Share feedback <span aria-hidden="true">↗</span></a
+            ><a class="button secondary support-link" hidden
+              >Support the project <span aria-hidden="true">↗</span></a
+            >
+          </p>
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer wrap">
+      <a class="wordmark" href="./"
+        ><img src="./icon.svg" alt="" width="24" height="24" />wattle notes</a
+      >
+      <p>Your words. Your files.</p>
+      <nav aria-label="Footer">
+        <a href="./privacy/">Privacy</a><a href="./getting-started/">Getting started</a
+        ><a class="source-link" href="./downloads/wattle-notes-source.zip">Source &amp; license</a>
+      </nav>
+    </footer>
+  </body>
+</html>
