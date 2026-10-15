@@ -1057,3 +1057,74 @@ fn backup_restore_rejects_bad_keys_tampering_and_truncation_without_publishing()
         assert_eq!(fs::read_dir(parent.path()).unwrap().count(), 0);
     }
 }
+
+#[test]
+fn local_image_reader_decodes_imported_links_and_supplies_raster_mime_types() {
+    use notes_core::images;
+    let (dir, mut v) = vault();
+    let note = v.create_note("Ideas/Note.md").unwrap();
+    let source = tempfile::Builder::new()
+        .prefix("screen shot café #100% (copy) ")
+        .suffix(".PNG")
+        .tempfile()
+        .unwrap();
+    fs::write(source.path(), b"\x89PNG\r\n\x1a\n").unwrap();
+    let imported = v.import_attachment(source.path()).unwrap();
+    let target = links::relative_path(&note.path, &imported);
+    let encoded = target
+        .replace('%', "%25")
+        .replace(' ', "%20")
+        .replace('#', "%23")
+        .replace('(', "%28")
+        .replace(')', "%29");
+    let image = images::read(dir.path(), &note.path, &encoded).unwrap();
+    assert_eq!(image.bytes, fs::read(source.path()).unwrap());
+    assert_eq!(image.mime_type, "image/png");
+    for (ext, mime) in [
+        ("jpg", "image/jpeg"),
+        ("jpeg", "image/jpeg"),
+        ("gif", "image/gif"),
+        ("webp", "image/webp"),
+        ("avif", "image/avif"),
+    ] {
+        fs::write(dir.path().join(format!("photo.{ext}")), b"test bytes").unwrap();
+        assert_eq!(
+            images::read(dir.path(), &note.path, &format!("../photo.{ext}"))
+                .unwrap()
+                .mime_type,
+            mime
+        );
+    }
+}
+
+#[test]
+fn local_image_reader_keeps_paths_and_sizes_bounded() {
+    use notes_core::images;
+    let (dir, _) = vault();
+    for target in [
+        "../outside.png",
+        "%2e%2e/outside.png",
+        "/outside.png",
+        "//example.com/image.png",
+        "https://example.com/image.png",
+        "file:///tmp/outside.png",
+        ".notes/image.png",
+        "picture.svg",
+        "data:image/png;base64,aaa",
+    ] {
+        assert!(
+            images::read(dir.path(), "Note.md", target).is_err(),
+            "{target}"
+        );
+    }
+    fs::create_dir(dir.path().join("directory.png")).unwrap();
+    assert!(images::read(dir.path(), "Note.md", "directory.png").is_err());
+    let big = fs::File::create(dir.path().join("big.png")).unwrap();
+    big.set_len(images::MAX_INLINE_IMAGE + 1).unwrap();
+    assert!(images::read(dir.path(), "Note.md", "big.png").is_err());
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::symlink("big.png", dir.path().join("link.png")).unwrap();
+        assert!(images::read(dir.path(), "Note.md", "link.png").is_err());
+    }
+}

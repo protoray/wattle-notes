@@ -135,7 +135,7 @@ pub fn relative_path(source: &str, destination: &str) -> String {
     result.join("/")
 }
 
-fn percent_decode(value: &str) -> String {
+pub(crate) fn percent_decode(value: &str) -> String {
     let mut result = Vec::new();
     let bytes = value.as_bytes();
     let mut i = 0;

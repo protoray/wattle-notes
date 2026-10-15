@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { call, native } from './api';
 import { renderMarkdown } from './markdown';
+import { hydrateLocalImages } from './localImages';
 import type { Note } from './types';
 export default function Preview({
   note,
@@ -14,28 +15,9 @@ export default function Preview({
   const root = useRef<HTMLDivElement>(null);
   const html = useMemo(() => renderMarkdown(content), [content]);
   useEffect(() => {
-    let cancelled = false;
-    const urls: string[] = [];
-    if (native)
-      root.current?.querySelectorAll<HTMLImageElement>('img[data-local-image]').forEach((image) => {
-        const target = image.dataset.localImage!;
-        void call<number[]>('attachment_bytes', { sourceNote: note.id, target })
-          .then((bytes) => {
-            if (cancelled) return;
-            const blob = new Blob([new Uint8Array(bytes)]);
-            const url = URL.createObjectURL(blob);
-            urls.push(url);
-            image.src = url;
-          })
-          .catch(() => {
-            if (!cancelled) image.alt = `Image unavailable: ${image.alt}`;
-          });
-      });
-    return () => {
-      cancelled = true;
-      urls.forEach((url) => URL.revokeObjectURL(url));
-    };
-  }, [html, note.id]);
+    if (root.current) return hydrateLocalImages(root.current, note.id);
+  }, [html, note.id, note.path]);
+
   return (
     <div
       className="reading-page"

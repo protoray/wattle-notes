@@ -4,6 +4,7 @@ pub mod crypto;
 pub mod desktop;
 pub mod drive;
 pub mod error;
+pub mod images;
 pub mod links;
 pub mod model;
 pub mod oauth;

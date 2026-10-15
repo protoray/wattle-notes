@@ -226,27 +226,14 @@ async fn attachment_bytes(
     state: State<'_, AppState>,
     source_note: String,
     target: String,
-) -> Command<Vec<u8>> {
+) -> Command<crate::images::LocalImage> {
     local(&state, move |v| {
         let note = v.note(&source_note)?;
-        let path = links::normalize_relative(&note.path, &target)
-            .ok_or_else(|| fail("Attachment path escapes the vault"))?;
-        let file = paths::inside(&v.root, &path)?;
-        let extension = file
-            .extension()
-            .and_then(|s| s.to_str())
-            .unwrap_or_default()
-            .to_lowercase();
-        if !["png", "jpg", "jpeg", "gif", "webp", "avif"].contains(&extension.as_str()) {
-            return Err(fail("This image format is not previewed"));
-        }
-        if file.metadata()?.len() > 10 * 1024 * 1024 {
-            return Err(fail("Inline images are limited to 10 MiB"));
-        }
-        Ok(fs::read(file)?)
+        crate::images::read(&v.root, &note.path, &target)
     })
     .await
 }
+
 #[tauri::command]
 async fn note_links(state: State<'_, AppState>, id: String) -> Command<serde_json::Value> {
     local(&state, move |v| {
