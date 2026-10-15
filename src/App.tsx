@@ -29,7 +29,9 @@ import {
   X,
 } from 'lucide-react';
 import { call, native } from './api';
-import { relativePath, replaceBody, resolveTarget, splitContent } from './content';
+import { replaceBody, resolveTarget, splitContent } from './content';
+import { attachmentMarkdown, importClipboardImages } from './clipboard-images';
+import { imagePasteExtension } from './image-paste-extension';
 import type { AccountInfo, LinkInfo, Note, Revision, SyncStatus, VaultInfo } from './types';
 import Modal from './Modal';
 import Preview from './Preview';
@@ -77,6 +79,7 @@ export default function App() {
   const [sidebar, setSidebar] = useState(true);
   const hasVault = info !== null;
   const base = useRef<Note | null>(null);
+  const documentGeneration = useRef(0);
   const draftRef = useRef('');
   const savingPromise = useRef<Promise<Note> | null>(null);
   const busySync = useRef(false);
@@ -91,6 +94,7 @@ export default function App() {
     setField('');
   }, []);
   const assign = useCallback((note: Note | null) => {
+    documentGeneration.current += 1;
     base.current = note;
     draftRef.current = note?.content ?? '';
     setSelectedId(note?.id ?? null);
@@ -319,7 +323,38 @@ export default function App() {
   const selected = info?.notes.find((n) => n.id === selectedId) ?? base.current;
   const editorBody = splitContent(draft).body;
   const wordCount = editorBody.trim() ? editorBody.trim().split(/\s+/).length : 0;
-  const extensions = useMemo(() => [markdown(), EditorView.lineWrapping], []);
+  const onPasteImageFiles = useCallback(
+    async (files: File[]) => {
+      const note = base.current;
+      const root = info?.root;
+      if (!native || !note || !root) return null;
+      const generation = documentGeneration.current;
+      const isCurrent = () =>
+        generation === documentGeneration.current && base.current?.id === note.id;
+      try {
+        return await importClipboardImages(
+          files,
+          { root, id: note.id, path: note.path },
+          isCurrent,
+          (args) => call<string>('import_clipboard_image', args),
+        );
+      } catch (error) {
+        if (isCurrent()) setMessage(String(error));
+        return null;
+      }
+    },
+    [info?.root],
+  );
+  const extensions = useMemo(
+    () => [
+      markdown(),
+      EditorView.lineWrapping,
+      ...(native
+        ? [imagePasteExtension(onPasteImageFiles, (error) => setMessage(String(error)))]
+        : []),
+    ],
+    [onPasteImageFiles],
+  );
   async function choose(note: Note) {
     try {
       await saveCurrent();
@@ -344,6 +379,7 @@ export default function App() {
     }
   }
   async function openNotebook(root: string) {
+    documentGeneration.current += 1;
     await saveCurrent();
     const next = await call<VaultInfo>('open_vault', { root });
     setInfo(next);
@@ -397,23 +433,29 @@ export default function App() {
     }
   }
   async function attachment() {
-    if (!selected) return;
+    const note = base.current;
+    const root = info?.root;
+    if (!note || !root) return;
+    const generation = documentGeneration.current;
+    const isCurrent = () =>
+      generation === documentGeneration.current && base.current?.id === note.id;
     try {
       const source = await open({ multiple: false, title: 'Attach a file' });
-      if (typeof source !== 'string') return;
+      if (typeof source !== 'string' || !isCurrent()) return;
       await saveCurrent();
-      const path = await call<string>('import_attachment', { source });
-      const target = relativePath(selected.path, path).replace(/ /g, '%20');
+      if (!isCurrent()) return;
+      const path = await call<string>('import_attachment', {
+        source,
+        expectedRoot: root,
+        noteId: note.id,
+      });
+      if (!isCurrent()) return;
       const image = /\.(png|jpe?g|gif|webp|avif)$/i.test(path);
-      const name = path
-        .split('/')
-        .pop()!
-        .replace(/^[a-f\d]{8}-/, '');
-      const content = draftRef.current + `\n${image ? '!' : ''}[${name}](${target})\n`;
+      const content = draftRef.current + `\n${attachmentMarkdown(note.path, path, image)}\n`;
       draftRef.current = content;
       setDraft(content);
     } catch (e) {
-      setMessage(String(e));
+      if (isCurrent()) setMessage(String(e));
     }
   }
   async function importExport(importing: boolean) {
@@ -866,6 +908,7 @@ export default function App() {
                 {mode !== 'read' && (
                   <div className="editor-pane">
                     <CodeMirror
+                      key={`${info?.root}:${selected.id}`}
                       value={editorBody}
                       extensions={extensions}
                       theme={dark ? oneDark : 'light'}

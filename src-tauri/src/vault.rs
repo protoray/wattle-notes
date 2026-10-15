@@ -806,6 +806,62 @@ impl Vault {
         fs::create_dir_all(paths::inside(&self.root, path)?)?;
         Ok(())
     }
+    pub fn check_attachment_target(&self, expected_root: &str, note_id: &str) -> Result<()> {
+        if self.root != Path::new(expected_root) {
+            return Err(fail("The notebook changed while importing the attachment"));
+        }
+        let note = self.note(note_id)?;
+        if !paths::inside(&self.root, &note.path)?.is_file() {
+            return Err(fail("The note was removed while importing the attachment"));
+        }
+        Ok(())
+    }
+    pub fn import_clipboard_image(
+        &mut self,
+        expected_root: &str,
+        note_id: &str,
+        mime: &str,
+        bytes: &[u8],
+    ) -> Result<String> {
+        self.check_attachment_target(expected_root, note_id)?;
+        // Inline rendering uses a tighter limit than generic attachments.
+        if bytes.is_empty() || bytes.len() > 10 * 1024 * 1024 {
+            return Err(fail(
+                "Pasted images must be non-empty and no larger than 10 MiB",
+            ));
+        }
+        let extension = match mime {
+            "image/png" if bytes.starts_with(b"\x89PNG\r\n\x1a\n") => "png",
+            "image/jpeg" if bytes.starts_with(&[0xff, 0xd8, 0xff]) => "jpg",
+            "image/gif" if bytes.starts_with(b"GIF87a") || bytes.starts_with(b"GIF89a") => "gif",
+            "image/webp"
+                if bytes.len() >= 12 && &bytes[..4] == b"RIFF" && &bytes[8..12] == b"WEBP" =>
+            {
+                "webp"
+            }
+            "image/avif"
+                if bytes.len() >= 16
+                    && &bytes[4..8] == b"ftyp"
+                    && (&bytes[8..12] == b"avif" || &bytes[8..12] == b"avis") =>
+            {
+                "avif"
+            }
+            _ => {
+                return Err(fail(
+                    "Clipboard data is not a supported image of the declared type",
+                ))
+            }
+        };
+        let path = format!(
+            "attachments/{}-pasted-image.{extension}",
+            &Uuid::new_v4().to_string()[..8]
+        );
+        self.check_collision(&path, None)?;
+        let dest = paths::inside(&self.root, &path)?;
+        paths::atomic_write(&dest, bytes)?;
+        self.scan_attachment(&path)?;
+        Ok(path)
+    }
     pub fn import_attachment(&mut self, source: &Path) -> Result<String> {
         if !fs::symlink_metadata(source)?.file_type().is_file() {
             return Err(fail("Select a regular attachment file"));

@@ -1128,3 +1128,75 @@ fn local_image_reader_keeps_paths_and_sizes_bounded() {
         assert!(images::read(dir.path(), "Note.md", "link.png").is_err());
     }
 }
+
+#[test]
+fn pasted_images_are_local_indexed_attachments_and_do_not_trust_filenames() {
+    let (_dir, mut vault) = vault();
+    let note = vault.create_note("Folder/Note.md").unwrap();
+    let root = vault.root.to_str().unwrap().to_owned();
+    let png = b"\x89PNG\r\n\x1a\nclipboard raster";
+    let path = vault
+        .import_clipboard_image(&root, &note.id, "image/png", png)
+        .unwrap();
+    assert!(path.starts_with("attachments/"));
+    assert!(path.ends_with("-pasted-image.png"));
+    assert_eq!(fs::read(vault.root.join(&path)).unwrap(), png);
+    assert!(vault
+        .revisions(None)
+        .unwrap()
+        .iter()
+        .any(|r| r.path == path && r.kind == ItemKind::Attachment));
+    let other = vault
+        .import_clipboard_image(&root, &note.id, "image/png", png)
+        .unwrap();
+    assert_ne!(path, other);
+}
+
+#[test]
+fn pasted_images_reject_stale_notebooks_deleted_notes_spoofed_types_and_oversize() {
+    let (_dir, mut vault) = vault();
+    let note = vault.create_note("Note.md").unwrap();
+    let root = vault.root.to_str().unwrap().to_owned();
+    let png = b"\x89PNG\r\n\x1a\nclipboard raster";
+    assert!(vault
+        .import_clipboard_image("/different/notebook", &note.id, "image/png", png)
+        .is_err());
+    assert!(vault
+        .import_clipboard_image(&root, "missing-note", "image/png", png)
+        .is_err());
+    assert!(vault
+        .import_clipboard_image(&root, &note.id, "image/svg+xml", b"<svg/>")
+        .is_err());
+    assert!(vault
+        .import_clipboard_image(&root, &note.id, "image/png", b"<html/>")
+        .is_err());
+    assert!(vault
+        .import_clipboard_image(&root, &note.id, "image/jpeg", png)
+        .is_err());
+    assert!(vault
+        .import_clipboard_image(&root, &note.id, "image/png", b"")
+        .is_err());
+    assert!(vault
+        .import_clipboard_image(&root, &note.id, "image/png", &vec![0; 10 * 1024 * 1024 + 1])
+        .is_err());
+    assert!(!vault.root.join("attachments").exists());
+    fs::remove_file(vault.root.join("Note.md")).unwrap();
+    assert!(vault
+        .import_clipboard_image(&root, &note.id, "image/png", png)
+        .is_err());
+}
+
+#[cfg(unix)]
+#[test]
+fn pasted_images_cannot_write_through_an_attachments_symlink() {
+    use std::os::unix::fs::symlink;
+    let (_dir, mut vault) = vault();
+    let note = vault.create_note("Note.md").unwrap();
+    let outside = TempDir::new().unwrap();
+    symlink(outside.path(), vault.root.join("attachments")).unwrap();
+    let root = vault.root.to_str().unwrap().to_owned();
+    assert!(vault
+        .import_clipboard_image(&root, &note.id, "image/png", b"\x89PNG\r\n\x1a\n")
+        .is_err());
+    assert_eq!(fs::read_dir(outside.path()).unwrap().count(), 0);
+}

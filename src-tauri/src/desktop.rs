@@ -218,8 +218,30 @@ async fn export_vault(state: State<'_, AppState>, destination: String) -> Comman
     local(&state, move |v| v.export_to(&PathBuf::from(destination))).await
 }
 #[tauri::command]
-async fn import_attachment(state: State<'_, AppState>, source: String) -> Command<String> {
-    local(&state, move |v| v.import_attachment(&PathBuf::from(source))).await
+async fn import_attachment(
+    state: State<'_, AppState>,
+    source: String,
+    expected_root: String,
+    note_id: String,
+) -> Command<String> {
+    local(&state, move |v| {
+        v.check_attachment_target(&expected_root, &note_id)?;
+        v.import_attachment(&PathBuf::from(source))
+    })
+    .await
+}
+#[tauri::command]
+async fn import_clipboard_image(
+    state: State<'_, AppState>,
+    expected_root: String,
+    note_id: String,
+    mime: String,
+    bytes: Vec<u8>,
+) -> Command<String> {
+    local(&state, move |v| {
+        v.import_clipboard_image(&expected_root, &note_id, &mime, &bytes)
+    })
+    .await
 }
 #[tauri::command]
 async fn attachment_bytes(
@@ -707,6 +729,7 @@ pub fn run() {
             import_folder,
             export_vault,
             import_attachment,
+            import_clipboard_image,
             attachment_bytes,
             note_links,
             conflicts,
