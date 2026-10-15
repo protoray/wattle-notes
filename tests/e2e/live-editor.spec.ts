@@ -78,3 +78,28 @@ test('Read keyboard formatting and task checkboxes update ordinary Markdown', as
   await page.getByRole('button', { name: 'Write', exact: true }).click();
   await expect(editor).toContainText('- [x] Take a note');
 });
+
+test('view switches preserve source edits, selection and undo history', async ({ page }) => {
+  await page.goto('/');
+  const editor = page.locator('.cm-content');
+  await editor.click();
+  await page.keyboard.press(`${mod}+a`);
+  await page.keyboard.insertText('# Persistent\n\nA paragraph.');
+  await page.getByRole('button', { name: 'Read', exact: true }).click();
+  await page
+    .locator('.cm-line')
+    .filter({ hasText: /^A paragraph\.$/ })
+    .click();
+  await page.keyboard.press('End');
+  await page.keyboard.insertText(' From Read.');
+  await page.getByRole('button', { name: 'Write', exact: true }).click();
+  await editor.click();
+  await page.keyboard.press(`${mod}+z`);
+  await expect(editor).not.toContainText('From Read.');
+  await expect(editor).toContainText('A paragraph.');
+  await page.getByRole('button', { name: 'Split', exact: true }).click();
+  await expect(page.locator('.preview-pane')).toContainText('A paragraph.');
+  await page.getByRole('button', { name: 'Read', exact: true }).click();
+  await page.getByRole('button', { name: 'Redo', exact: true }).click();
+  await expect(editor).toContainText('From Read.');
+});

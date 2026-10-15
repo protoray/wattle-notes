@@ -1,14 +1,22 @@
-import { useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 import { oneDark } from '@codemirror/theme-one-dark';
-import { redo, undo } from '@codemirror/commands';
-import { EditorSelection, Prec, type EditorState } from '@codemirror/state';
+import { isolateHistory, redo, undo } from '@codemirror/commands';
+import { Compartment, EditorSelection, Prec, type EditorState } from '@codemirror/state';
 import { EditorView, keymap, type Command } from '@codemirror/view';
 import { Bold, Italic, Heading2, List, Link2, Undo2, Redo2, Code, Quote } from 'lucide-react';
 import { call, native } from './api';
 import { imagePasteExtension } from './image-paste-extension';
 import { liveMarkdown, wrapSelection } from './liveMarkdown';
+
+const basicSetup = {
+  lineNumbers: false,
+  foldGutter: false,
+  highlightActiveLine: false,
+  highlightActiveLineGutter: false,
+  autocompletion: false,
+};
 
 const wrap =
   (marker: string): Command =>
@@ -62,6 +70,7 @@ export default function LiveEditor({
   noteId,
   value,
   dark,
+  rendered,
   onChange,
   onLink,
   onPasteImageFiles,
@@ -69,18 +78,19 @@ export default function LiveEditor({
   noteId: string;
   value: string;
   dark: boolean;
+  rendered: boolean;
   onChange: (value: string) => void;
   onLink: (target: string, wiki: boolean) => void;
   onPasteImageFiles?: (files: File[]) => Promise<string | null>;
 }) {
   const editor = useRef<EditorView | null>(null);
-  const actions = useRef({ onLink, onPasteImageFiles });
-  actions.current = { onLink, onPasteImageFiles };
+  const actions = useRef({ onChange, onLink, onPasteImageFiles });
+  actions.current = { onChange, onLink, onPasteImageFiles };
+  const onDocumentChange = useCallback((content: string) => actions.current.onChange(content), []);
   const canPaste = Boolean(onPasteImageFiles);
-  const extensions = useMemo(
+  const presentation = useMemo(() => new Compartment(), []);
+  const readExtensions = useMemo(
     () => [
-      markdown({ base: markdownLanguage }),
-      EditorView.lineWrapping,
       liveMarkdown(noteId),
       Prec.high(
         keymap.of([
@@ -106,6 +116,16 @@ export default function LiveEditor({
           return true;
         },
       }),
+    ],
+    [noteId],
+  );
+  // A stable base configuration preserves history and in-flight paste plugins.
+  // Only the presentation compartment changes when switching views.
+  const extensions = useMemo(
+    () => [
+      markdown({ base: markdownLanguage }),
+      EditorView.lineWrapping,
+      presentation.of([]),
       ...(canPaste
         ? [
             imagePasteExtension(
@@ -114,8 +134,14 @@ export default function LiveEditor({
           ]
         : []),
     ],
-    [noteId, canPaste],
-  ); // Callback identity must not reset an active editor or undo history.
+    [presentation, canPaste],
+  );
+  useEffect(() => {
+    editor.current?.dispatch({
+      effects: presentation.reconfigure(rendered ? readExtensions : []),
+      annotations: isolateHistory.of('full'),
+    });
+  }, [rendered, readExtensions, presentation]);
   const run = (command: Command) => {
     if (editor.current) {
       command(editor.current);
@@ -123,52 +149,49 @@ export default function LiveEditor({
     }
   };
   return (
-    <div className="live-editor">
-      <div className="live-toolbar" role="toolbar" aria-label="Markdown formatting">
-        {(
-          [
-            ['Bold', Bold, wrap('**'), 'Ctrl/Cmd+B'],
-            ['Italic', Italic, wrap('*'), 'Ctrl/Cmd+I'],
-            ['Heading', Heading2, prefix('## '), ''],
-            ['Bullet list', List, prefix('- '), ''],
-            ['Quote', Quote, prefix('> '), ''],
-            ['Inline code', Code, wrap('`'), ''],
-            ['Link', Link2, insertLink, 'Ctrl/Cmd+K'],
-            ['Undo', Undo2, undo, 'Ctrl/Cmd+Z'],
-            ['Redo', Redo2, redo, 'Ctrl/Cmd+Shift+Z'],
-          ] as const
-        ).map(([label, Icon, command, shortcut]) => (
-          <button
-            type="button"
-            key={label}
-            aria-label={label}
-            title={`${label}${shortcut ? ` (${shortcut})` : ''}`}
-            onMouseDown={(event) => event.preventDefault()}
-            onClick={() => run(command)}
-          >
-            <Icon size={15} />
-          </button>
-        ))}
-        <span>Click to write · Ctrl/Cmd-click links to open</span>
-      </div>
-      <div className="reading-page live-reading-page">
+    <div className="editor-pane live-editor">
+      {rendered && (
+        <div className="live-toolbar" role="toolbar" aria-label="Markdown formatting">
+          {(
+            [
+              ['Bold', Bold, wrap('**'), 'Ctrl/Cmd+B'],
+              ['Italic', Italic, wrap('*'), 'Ctrl/Cmd+I'],
+              ['Heading', Heading2, prefix('## '), ''],
+              ['Bullet list', List, prefix('- '), ''],
+              ['Quote', Quote, prefix('> '), ''],
+              ['Inline code', Code, wrap('`'), ''],
+              ['Link', Link2, insertLink, 'Ctrl/Cmd+K'],
+              ['Undo', Undo2, undo, 'Ctrl/Cmd+Z'],
+              ['Redo', Redo2, redo, 'Ctrl/Cmd+Shift+Z'],
+            ] as const
+          ).map(([label, Icon, command, shortcut]) => (
+            <button
+              type="button"
+              key={label}
+              aria-label={label}
+              title={`${label}${shortcut ? ` (${shortcut})` : ''}`}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => run(command)}
+            >
+              <Icon size={15} />
+            </button>
+          ))}
+          <span>Click to write · Ctrl/Cmd-click links to open</span>
+        </div>
+      )}
+      <div className={rendered ? 'reading-page live-reading-page' : 'source-editor-page'}>
         <CodeMirror
           value={value}
           extensions={extensions}
           theme={dark ? oneDark : 'light'}
-          onChange={onChange}
+          onChange={onDocumentChange}
           onCreateEditor={(view) => {
             editor.current = view;
+            view.dispatch({ effects: presentation.reconfigure(rendered ? readExtensions : []) });
           }}
-          basicSetup={{
-            lineNumbers: false,
-            foldGutter: false,
-            highlightActiveLine: false,
-            highlightActiveLineGutter: false,
-            autocompletion: false,
-          }}
+          basicSetup={basicSetup}
           height="100%"
-          aria-label="Rendered Markdown editor"
+          aria-label={rendered ? 'Rendered Markdown editor' : 'Markdown editor'}
         />
       </div>
     </div>

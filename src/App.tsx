@@ -1,8 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import CodeMirror from '@uiw/react-codemirror';
-import { markdown } from '@codemirror/lang-markdown';
-import { oneDark } from '@codemirror/theme-one-dark';
-import { EditorView } from 'codemirror';
 import { open } from '@tauri-apps/plugin-dialog';
 import {
   ArrowLeft,
@@ -31,7 +27,6 @@ import {
 import { call, native } from './api';
 import { replaceBody, resolveTarget, splitContent } from './content';
 import { attachmentMarkdown, importClipboardImages } from './clipboard-images';
-import { imagePasteExtension } from './image-paste-extension';
 import type { AccountInfo, LinkInfo, Note, Revision, SyncStatus, VaultInfo } from './types';
 import Modal from './Modal';
 import Preview from './Preview';
@@ -345,16 +340,6 @@ export default function App() {
       }
     },
     [info?.root],
-  );
-  const extensions = useMemo(
-    () => [
-      markdown(),
-      EditorView.lineWrapping,
-      ...(native
-        ? [imagePasteExtension(onPasteImageFiles, (error) => setMessage(String(error)))]
-        : []),
-    ],
-    [onPasteImageFiles],
   );
   async function choose(note: Note) {
     try {
@@ -906,48 +891,24 @@ export default function App() {
             </div>
             <div className={`document-body ${mode} ${showLinks ? 'has-links' : ''}`}>
               <div className="writing-area">
-                {mode !== 'read' && (
-                  <div className="editor-pane">
-                    <CodeMirror
-                      key={`${info?.root}:${selected.id}`}
-                      value={editorBody}
-                      extensions={extensions}
-                      theme={dark ? oneDark : 'light'}
-                      onChange={(value) => {
-                        const content = replaceBody(draftRef.current, value);
-                        draftRef.current = content;
-                        setDraft(content);
-                      }}
-                      basicSetup={{
-                        lineNumbers: false,
-                        foldGutter: false,
-                        highlightActiveLine: false,
-                        highlightActiveLineGutter: false,
-                        autocompletion: false,
-                      }}
-                      height="100%"
-                      aria-label="Markdown editor"
-                    />
-                  </div>
-                )}
-                {mode === 'read' && (
-                  <LiveEditor
-                    key={`${info?.root}:${selected.id}:${selected.path}`}
-                    noteId={selected.id}
-                    value={editorBody}
-                    dark={dark}
-                    onChange={(value) => {
-                      const content = replaceBody(draftRef.current, value);
-                      draftRef.current = content;
-                      setDraft(content);
-                    }}
-                    onLink={(target, wiki) => void openLink(target, wiki)}
-                    onPasteImageFiles={native ? onPasteImageFiles : undefined}
-                  />
-                )}
+                <LiveEditor
+                  key={`${info?.root}:${selected.id}:${selected.path}`}
+                  noteId={selected.id}
+                  value={editorBody}
+                  dark={dark}
+                  rendered={mode === 'read'}
+                  onChange={(value) => {
+                    const content = replaceBody(draftRef.current, value);
+                    draftRef.current = content;
+                    setDraft(content);
+                  }}
+                  onLink={(target, wiki) => void openLink(target, wiki)}
+                  onPasteImageFiles={native ? onPasteImageFiles : undefined}
+                />
                 {mode === 'split' && (
                   <div className="preview-pane">
                     <Preview
+                      key={`${info?.root}:${selected.id}:${selected.path}`}
                       note={selected}
                       content={draft}
                       onLink={(target, wiki) => void openLink(target, wiki)}

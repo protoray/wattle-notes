@@ -1655,3 +1655,9 @@ kbd {
 .live-reading-page [class*='cm-live-h'] span {
   text-decoration: none !important;
 }
+
+.source-editor-page {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
