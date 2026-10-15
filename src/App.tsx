@@ -35,6 +35,7 @@ import { imagePasteExtension } from './image-paste-extension';
 import type { AccountInfo, LinkInfo, Note, Revision, SyncStatus, VaultInfo } from './types';
 import Modal from './Modal';
 import Preview from './Preview';
+import LiveEditor from './LiveEditor';
 import Settings from './Settings';
 import ConflictView from './ConflictView';
 import HistoryView from './HistoryView';
@@ -929,7 +930,21 @@ export default function App() {
                     />
                   </div>
                 )}
-                {mode !== 'edit' && (
+                {mode === 'read' && (
+                  <LiveEditor
+                    key={`${info?.root}:${selected.id}:${selected.path}`}
+                    noteId={selected.id}
+                    value={editorBody}
+                    dark={dark}
+                    onChange={(value) => {
+                      const content = replaceBody(draftRef.current, value);
+                      draftRef.current = content;
+                      setDraft(content);
+                    }}
+                    onLink={(target, wiki) => void openLink(target, wiki)}
+                  />
+                )}
+                {mode === 'split' && (
                   <div className="preview-pane">
                     <Preview
                       note={selected}

@@ -45,3 +45,7 @@ The Drive adapter is behind a `Remote` trait. Changed remote object versions are
 ## Optional WebDAV backup
 
 `backup.rs` builds a versioned encrypted snapshot from current files and a consistent local metadata snapshot. `webdav.rs` handles HTTPS Basic authentication with an OS-stored app password, PROPFIND listings, streamed PUT, and MOVE publication. The endpoint is user-configured; requests never follow redirects. Backups are manual and independent of the Drive revision protocol. Restore validates and stages a complete notebook before publishing a new folder; it retains the original vault identity/history for subsequent reconciliation. The frontend delegates backup through the same pending-editor save flow.
+
+## Live Markdown editing
+
+Read mode uses CodeMirror decorations to display headings, inline formatting, lists, wiki/Markdown links and attachment images while editing the canonical Markdown body. Markers near the caret remain visible for unambiguous editing. The toolbar and shortcuts dispatch normal source transactions and retain CodeMirror undo; the resulting body is passed through the existing frontmatter-preserving draft, autosave and conflict flow. Complex blocks remain literal source rather than undergoing a lossy HTML conversion. Local image widgets use the same bounded attachment reader and object-URL cleanup as split preview; raw HTML and remote image URLs never become active browser resources. Ctrl/Cmd-click opens links, and a plain click edits their labels.

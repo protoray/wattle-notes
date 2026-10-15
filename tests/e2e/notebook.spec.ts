@@ -68,7 +68,7 @@ test('links and preview security remain functional', async ({ page }) => {
   await page
     .locator('.reading-page')
     .getByRole('link', { name: 'A useful note', exact: true })
-    .click();
+    .click({ modifiers: [process.platform === 'darwin' ? 'Meta' : 'Control'] });
   await expect(
     page.getByRole('heading', { name: 'A useful note', exact: true }).first(),
   ).toBeVisible();

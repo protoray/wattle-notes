@@ -9,7 +9,7 @@ An independent desktop Markdown notebook with encrypted Google Drive sync. Built
 ## Features
 
 - Ordinary Markdown folders; stable note IDs and tags in YAML frontmatter.
-- Writing, split preview, and reading views; keyboard shortcuts and five saved appearance themes.
+- Writing, split preview, and directly editable reading views; keyboard shortcuts and five saved appearance themes.
 - Local full-text search, wiki links, relative Markdown links, and backlinks.
 - Attachment imports and bounded local image previews. Remote images are blocked.
 - Journaled saves, external-file scanning, Markdown import/export, and retained history.
@@ -68,11 +68,13 @@ Rust formatting: `cargo fmt --manifest-path src-tauri/Cargo.toml --check`. Front
 
 Shortcuts: **Cmd/Ctrl+N** creates a note, **Cmd/Ctrl+P** focuses search, and **Cmd/Ctrl+S** saves. Local autosave waits 500 ms. Connected, unlocked sync runs after five seconds of inactivity, every 30 seconds, on reconnect, or manually.
 
+**Read** is a live Markdown editor. Click rendered text to write; formatting markers appear around the caret so you can edit the underlying Markdown. Use the toolbar or **Cmd/Ctrl+B**, **Cmd/Ctrl+I**, and **Cmd/Ctrl+K** for bold, italic, and links. **Cmd/Ctrl-click** a rendered link to follow it; ordinary clicks edit it. Undo/redo and autosave use the same note draft as Write mode. Headings, emphasis, lists, task checkboxes, links and local images are displayed with formatting. Tables, fenced code and raw HTML remain visible as Markdown source; editing does not round-trip the document through HTML.
+
 Choose **Appearance** in the sidebar, or **Settings → Choose theme**, for Paper, Charcoal, Midnight, Sepia, and Forest. Charcoal is the neutral default dark theme; Forest retains the original green palette. Themes apply immediately and are remembered on this device. The **Dark mode** switch returns to your last chosen light or dark theme.
 
 ## Alpha boundaries
 
-- One active vault and Google account. Mobile, collaboration, graph views, citations, plugins, rich-text editing, and passphrase changes are deferred.
+- One active vault and Google account. Mobile, collaboration, graph views, citations, plugins, full rich-text document conversion, and passphrase changes are deferred.
 - Notes are limited to 10 MiB, attachments to 100 MiB, inline image previews to 10 MiB. Remote history is retained without automatic pruning and uses additional Drive storage.
 - Sync scans the complete encrypted history for consistency; the stored Drive changes cursor tracks removal events. Large-vault optimization is future work.
 - Empty folders are local organization; remote folders are created as files are mirrored. Case-equivalent paths and Windows-reserved names are rejected for portability. Symlinks are not followed.

@@ -1536,3 +1536,122 @@ kbd {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Read is a Markdown-backed live editor; decorations never rewrite the note. */
+.live-editor {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+.live-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 7px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.live-toolbar button {
+  display: flex;
+  padding: 6px;
+  border-radius: 4px;
+}
+.live-toolbar button:hover {
+  background: var(--accent-soft);
+}
+.live-toolbar span {
+  margin-left: 9px;
+  color: var(--muted);
+  font-size: 10px;
+}
+.live-reading-page {
+  flex: 1;
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  min-height: 0;
+  overflow: auto;
+}
+.live-reading-page .cm-scroller {
+  font: 14px/1.95 var(--font-body, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif) !important;
+}
+.live-reading-page .cm-content {
+  max-width: 850px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 30px 44px 80px !important;
+}
+.live-reading-page .cm-line {
+  min-height: 1.95em;
+}
+.live-reading-page .cm-live-h1 {
+  font:
+    30px/1.5 Georgia,
+    serif;
+  letter-spacing: -0.5px;
+}
+.live-reading-page .cm-live-h2 {
+  font-size: 20px;
+  font-weight: 650;
+}
+.live-reading-page .cm-live-h3 {
+  font-size: 17px;
+  font-weight: 650;
+}
+.live-reading-page .cm-live-h4,
+.live-reading-page .cm-live-h5,
+.live-reading-page .cm-live-h6 {
+  font-weight: 650;
+}
+.cm-live-bold {
+  font-weight: 700;
+}
+.cm-live-italic {
+  font-style: italic;
+}
+.cm-live-strike {
+  text-decoration: line-through;
+}
+.live-reading-page .cm-live-quote {
+  border-left: 3px solid var(--divider);
+  padding-left: 14px !important;
+  font-style: italic;
+  color: var(--muted);
+}
+.cm-live-code,
+.cm-live-source-block {
+  font-family: 'SFMono-Regular', Consolas, monospace;
+  background: var(--sidebar);
+}
+.cm-live-code {
+  border-radius: 3px;
+}
+.cm-live-link {
+  cursor: text;
+}
+.cm-live-bullet {
+  color: var(--accent);
+}
+.cm-live-image {
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: middle;
+}
+.cm-live-image p {
+  margin: 8px 0;
+}
+.cm-live-image img {
+  max-width: 100%;
+  max-height: 600px;
+  object-fit: contain;
+}
+.cm-live-image .blocked-image {
+  font-size: 12px;
+  color: var(--muted);
+}
+.live-reading-page [class*='cm-live-h'] span {
+  text-decoration: none !important;
+}
