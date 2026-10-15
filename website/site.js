@@ -10,7 +10,7 @@ for (const button of document.querySelectorAll('[data-preview]')) {
   });
 }
 
-// A missing optional link stays absent. The page and default downloads still work without JavaScript.
+// A missing optional link stays absent. Default GitHub links work without JavaScript.
 fetch(new URL('./release.json', document.currentScript.src))
   .then((response) => {
     if (!response.ok) throw new Error('Release metadata unavailable');
@@ -19,10 +19,10 @@ fetch(new URL('./release.json', document.currentScript.src))
   .then((release) => {
     for (const node of document.querySelectorAll('[data-version]'))
       node.textContent = release.version;
-    for (const node of document.querySelectorAll('[data-download-size]'))
-      node.textContent = `${(release.mac.size / 1048576).toFixed(1)} MiB ·`;
     for (const [key, selector] of [
       ['repositoryUrl', '.repository-link'],
+      ['repositoryUrl', '.source-link'],
+      ['releasesUrl', '.releases-link'],
       ['feedbackUrl', '.feedback-link'],
       ['supportUrl', '.support-link'],
     ]) {
@@ -37,5 +37,5 @@ fetch(new URL('./release.json', document.currentScript.src))
     }
   })
   .catch(() => {
-    /* Default download links and copy remain usable without metadata. */
+    /* Default GitHub links and copy remain usable without metadata. */
   });

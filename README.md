@@ -82,7 +82,7 @@ See [encrypted format](docs/encrypted-format.md), [architecture](docs/architectu
 
 ## Website and alpha downloads
 
-The static launch website includes screenshot theme previews, privacy information, getting-started guidance, and a Mac developer-alpha download paired with its source archive and checksums. The interactive notebook preview is excluded from public deployment. Optional repository, feedback, and support links are configured in `website/launch.json`. Nothing is published automatically.
+The static launch website includes screenshot theme previews, privacy information, getting-started guidance, and links to the GitHub source repository and Releases page. App/source ZIPs and checksums are prepared separately in `release/github/` for manual GitHub release upload. The website bundle excludes download archives and the interactive notebook preview. Links are configured in `website/launch.json`. Preparing or pushing source files does not publish a release or update the WordPress website automatically.
 
 Run `npm run screenshots:site`, `npm run launch:prepare`, `npm run launch:verify -- --against-workspace`, then `npm run test:site` after building the Mac app. The deployable directory is `website/dist/`. See [the launch guide](docs/launch.md) for prerequisites, verification and remaining public-release gates.
 

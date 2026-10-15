@@ -125,7 +125,7 @@ export async function prepareLaunch() {
     throw new Error('Align the npm, Tauri and Cargo application versions before packaging.');
   const config = JSON.parse(await readFile(join(root, 'website/launch.json'), 'utf8'));
   const links = Object.fromEntries(
-    ['homepage', 'repositoryUrl', 'feedbackUrl', 'supportUrl'].map((key) => [
+    ['homepage', 'repositoryUrl', 'releasesUrl', 'feedbackUrl', 'supportUrl'].map((key) => [
       key,
       publicLink(config[key], key),
     ]),
@@ -166,8 +166,13 @@ export async function prepareLaunch() {
     });
 
   const destination = join(root, 'website/dist');
+  const releaseDirectory = join(root, 'release');
+  const githubAssets = join(releaseDirectory, 'github');
   await rm(destination, { recursive: true, force: true });
-  await mkdir(join(destination, 'downloads'), { recursive: true });
+  await mkdir(destination, { recursive: true });
+  await mkdir(githubAssets, { recursive: true });
+  for (const name of ['wattle-notes-source.zip', 'wattle-notes-macos-arm64.zip'])
+    await rm(join(githubAssets, name), { force: true });
   for (const item of [
     'index.html',
     'styles.css',
@@ -200,7 +205,7 @@ export async function prepareLaunch() {
       '--keepParent',
       '--norsrc',
       join(snapshot, folder),
-      join(destination, 'downloads/wattle-notes-source.zip'),
+      join(githubAssets, 'wattle-notes-source.zip'),
     ]);
     run('/usr/bin/ditto', [
       '-c',
@@ -208,15 +213,15 @@ export async function prepareLaunch() {
       '--keepParent',
       '--norsrc',
       app,
-      join(destination, 'downloads/wattle-notes-macos-arm64.zip'),
+      join(githubAssets, 'wattle-notes-macos-arm64.zip'),
     ]);
     const downloads = [];
     for (const name of ['wattle-notes-macos-arm64.zip', 'wattle-notes-source.zip']) {
-      const path = join(destination, 'downloads', name);
+      const path = join(githubAssets, name);
       downloads.push({ name, size: (await stat(path)).size, sha256: await sha256(path) });
     }
     await writeFile(
-      join(destination, 'downloads/SHA256SUMS.txt'),
+      join(githubAssets, 'SHA256SUMS.txt'),
       `${downloads.map((entry) => `${entry.sha256}  ${entry.name}`).join('\n')}\n`,
     );
     const release = {
@@ -232,11 +237,9 @@ export async function prepareLaunch() {
     };
     await writeFile(join(destination, 'release.json'), `${JSON.stringify(release, null, 2)}\n`);
     await writeFile(
-      join(destination, 'downloads/ALPHA-README.txt'),
-      `Wattle Notes ${pkg.version} — developer alpha\n\nmacOS Apple Silicon only. Unsigned; not notarized.\nLocal notes work without an account. Google sign-in is not preconfigured.\nCloud features still require live service acceptance testing.\nKeep independent backups and start with a test notebook.\n\nMatching source is in wattle-notes-source.zip, licensed GPL-3.0-or-later.\nSOURCE-SHA256SUMS.txt records its public source snapshot.\nSHA256SUMS.txt records both download archives.\nNo public repository/tag exists yet; do not imply these are signed official releases.\n\nSee ../getting-started/index.html and ../privacy/index.html.\n`,
+      join(githubAssets, 'ALPHA-README.txt'),
+      `Wattle Notes ${pkg.version} — developer alpha\n\nmacOS Apple Silicon only. Unsigned; not notarized.\nLocal notes work without an account. Google sign-in is not preconfigured.\nCloud features still require live service acceptance testing.\nKeep independent backups and start with a test notebook.\n\nMatching source is in wattle-notes-source.zip, licensed GPL-3.0-or-later.\nSOURCE-SHA256SUMS.txt records its public source snapshot.\nSHA256SUMS.txt records both download archives.\n\nRepository: ${links.repositoryUrl}\nPublish these files as assets of a GitHub pre-release. Preparing them does not upload, tag or publish anything.\nDo not imply this is a signed or notarized release.\n\nSee the getting-started and privacy pages at ${links.homepage}\n`,
     );
-    const releaseDirectory = join(root, 'release');
-    await mkdir(releaseDirectory, { recursive: true });
     const kit = join(releaseDirectory, 'wattle-notes-launch-kit.zip');
     await rm(kit, { force: true });
     run('/usr/bin/ditto', ['-c', '-k', '--norsrc', destination, kit]);
@@ -245,7 +248,7 @@ export async function prepareLaunch() {
       `${await sha256(kit)}  wattle-notes-launch-kit.zip\n`,
     );
     console.log(
-      `Launch kit prepared: ${relative(root, destination)}\nUpload archive: release/wattle-notes-launch-kit.zip\nVersion ${pkg.version}; ${manifest.length} public source files; app and source checksums included.`,
+      `Static website: ${relative(root, destination)}\nWebsite upload archive: release/wattle-notes-launch-kit.zip\nGitHub release assets: release/github/\nVersion ${pkg.version}; ${manifest.length} public source files; app and source checksums verified separately from the website.`,
     );
     return release;
   } finally {

@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 
 test('landing page is usable, theme previews work, and downloads match their checksums', async ({
   page,
@@ -17,12 +18,20 @@ test('landing page is usable, theme previews work, and downloads match their che
   expect(release.channel).toBe('developer-alpha');
   expect(release.googlePreconfigured).toBe(false);
   for (const entry of [release.mac, release.source]) {
-    const response = await request.get(`/downloads/${entry.name}`);
-    expect(response.ok()).toBe(true);
-    const body = await response.body();
+    const body = await readFile(`release/github/${entry.name}`);
     expect(body.length).toBe(entry.size);
     expect(createHash('sha256').update(body).digest('hex')).toBe(entry.sha256);
   }
+  await expect(page.getByRole('link', { name: /View GitHub Releases/ })).toHaveAttribute(
+    'href',
+    'https://github.com/protoray/wattle-notes/releases',
+  );
+  await expect(page.getByRole('link', { name: /Browse the source/ })).toHaveAttribute(
+    'href',
+    'https://github.com/protoray/wattle-notes',
+  );
+  expect((await request.get('/downloads/wattle-notes-macos-arm64.zip')).status()).toBe(404);
+  expect((await request.get('/downloads/wattle-notes-source.zip')).status()).toBe(404);
   await expect(page.getByRole('link', { name: /Support the project/ })).toHaveCount(
     release.supportUrl ? 1 : 0,
   );
@@ -67,6 +76,7 @@ test('site does not make third-party requests or offer missing local resources',
   for (const url of ['/', '/privacy/', '/getting-started/']) {
     await page.goto(url);
     await expect(page.locator('a[href*="/demo/"]')).toHaveCount(0);
+    await expect(page.locator('a[href*="/downloads/"]')).toHaveCount(0);
     const paths = await page
       .locator('a[href], img[src], link[href], script[src]')
       .evaluateAll((nodes) =>

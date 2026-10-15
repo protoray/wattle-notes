@@ -32,7 +32,9 @@ def check_archive(archive):
 
 def verify(root, against_workspace=False):
     site = root / "website/dist"
-    downloads = site / "downloads"
+    downloads = root / "release/github"
+    if (site / "downloads").exists() or (site / "demo").exists():
+        raise ValueError("The website must not host release downloads or the app demo")
     release = json.loads((site / "release.json").read_text())
     checksums = (downloads / "SHA256SUMS.txt").read_text().splitlines()
     for key, expected_name in [("mac", "wattle-notes-macos-arm64.zip"), ("source", "wattle-notes-source.zip")]:
@@ -103,7 +105,7 @@ def verify(root, against_workspace=False):
         for name in actual:
             if archive.read(name) != (site / name).read_bytes():
                 raise ValueError(f"Upload ZIP content differs from the site: {name}")
-    print(f"Verified app/source ZIPs, {len(manifest)} source checksums, notices, versions and upload ZIP.")
+    print(f"Verified GitHub app/source assets, {len(manifest)} source checksums, notices, versions and static website ZIP.")
     print("These checks establish artifact consistency, not code signing, cloud acceptance or public hosting.")
 
 

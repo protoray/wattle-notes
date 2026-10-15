@@ -52,6 +52,8 @@ Configured Google builds now hide developer setup controls and use native sign-i
 
 ## Local website and launch archive
 
+The latest local website changes point source/license links to `protoray/wattle-notes` and downloads to GitHub Releases. Launch preparation now separates the static website ZIP from app/source assets in `release/github/`; website-hosted archives and the app demo are excluded. This is a local preparation change: no GitHub release or live WordPress update is implied by committing or pushing it.
+
 The static launch kit includes a landing page, five actual app-preview theme screenshots, privacy/getting-started pages, Mac developer-alpha ZIP, matching GPL source ZIP, download checksums and release metadata. An optional external support link is hidden when unconfigured. The WordPress website was published on 15 October 2026 with the user's approval. The user subsequently requested removal of the live notebook demo; its public files and links were removed, and launch preparation now excludes it.
 
 Earlier website browser tests covered desktop/mobile layout, theme selection, the former nested demo, local resource checks, exact download SHA-256 matches, zero third-party requests, and configured support-link visibility without a checkout. The current website tests replace demo editing with checks that its URLs return 404 and no page links to it. The screenshot capture check passed for all five themes. Desktop/mobile page screenshots were inspected and mobile heading spacing corrected.
