@@ -36,6 +36,15 @@ fn finish_exit(app: tauri::AppHandle, state: State<'_, AppState>) {
         .store(true, std::sync::atomic::Ordering::SeqCst);
     app.exit(0);
 }
+#[tauri::command]
+fn restart_after_update(app: tauri::AppHandle, state: State<'_, AppState>) {
+    // The frontend flushes the current note before installing/restarting.
+    state
+        .0
+        .can_exit
+        .store(true, std::sync::atomic::Ordering::SeqCst);
+    app.request_restart();
+}
 
 async fn local<T: Send + 'static>(
     state: &AppState,
@@ -708,6 +717,7 @@ pub fn run() {
             }
         })
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(AppState::default())
         .invoke_handler(tauri::generate_handler![
             webdav_info,
@@ -748,6 +758,7 @@ pub fn run() {
             join_remote_vault,
             sync_now,
             finish_exit,
+            restart_after_update,
             open_external
         ])
         .on_window_event(|window, event| {

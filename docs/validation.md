@@ -1,4 +1,4 @@
-# Implementation validation — 13–14 October 2026
+# Implementation validation — 13–16 October 2026
 
 Executed on the development Mac (Apple Silicon), using Node.js 26.10.0 and an isolated Rust 1.99.0 toolchain. Build/test caches were kept out of source control.
 
@@ -81,6 +81,14 @@ Clipboard images are stored as indexed local attachments and inserted at the map
 The combined implementation passed 61 frontend tests, six Node tests, 41 Rust integration tests, seven desktop/module tests, strict desktop/all-target Clippy, frontend lint and ten browser tests. Existing dependency versions were retained; already-locked CodeMirror packages are now declared directly.
 
 A separately identified macOS QA build opened only a new synthetic notebook. Native WebKit displayed images with encoded filenames. Copy Image through the native context menu followed by normal Paste in both Write and Read created two PNG attachments; a direct Read edit was saved in the Markdown file. The primary app's remembered-notebook setting had an identical fingerprint before and after testing. These are local editor/image checks and do not establish live cloud acceptance or signing.
+
+## Signed alpha updater — 16 October 2026
+
+The local 0.1.2 candidate adds native Tauri update checking and user-initiated download/install/restart. Nine new frontend tests cover startup checks, saved opt-out/manual checks, save-before-install ordering, failed saves, failed signature/download responses, overlapping operations, failed-restart retry, offline errors and browser-preview isolation. The complete frontend suite passed 70 tests; Node release/launch/update validation passed nine tests. Lint, production build, strict desktop/all-target Clippy, 41 Rust integration tests and seven desktop/module tests passed. All eleven browser tests passed; the final updater-panel regression was rerun after layout cleanup and its screenshot inspected.
+
+The native Mac updater archive was built and signed. The release verifier checked its signature against the app's embedded public key and rejected a one-byte mutation. It also checks the authenticated version against the app version; native updater configuration requires that binding. Notices include the new updater and signature dependencies. The private signing key is excluded from Git, app resources and public source selection.
+
+Updater assets are prepared and verified locally before publication. The alpha feed must only advance after matching GitHub assets are public and verified. A full packaged Mac upgrade/restart was subsequently verified on 16 October with isolated 0.1.1 → 0.1.2 QA builds, a separate signing key, a loopback-only test feed and app identifier org.wattlenotes.updater-qa. The native UI rejected a tampered download while retaining the old binary, then installed the exact valid target binary and automatically relaunched (running state checked before reattaching). The edited note bytes, selected disposable notebook, Charcoal theme and startup-check opt-out survived. A fresh check offered no same-version update, and an offline check reported an error without installation. The normal app preference fingerprint was unchanged. The published 0.1.1 app itself has no updater and still requires a manual bootstrap installation. Browser tests mock or disable native APIs; the separate packaged checks establish native replacement and restart. The app is still unsigned by Apple, not notarized, and not configured for public Google sign-in. See [In-app alpha updates](updates.md) for key backup and publication ordering.
 
 ## Outstanding public-release checks
 

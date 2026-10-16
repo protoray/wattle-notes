@@ -6,6 +6,7 @@
 - Rust formatting, strict Clippy, storage/encryption tests, and two-/three-device transport simulations.
 - macOS ARM64 and x64, Windows x64, and Linux x64 native build jobs. Publish unsigned artifacts only as clearly identified development builds.
 - Regenerate dependency notices for release dependencies. Review license compatibility and cryptographic format changes.
+- For updater-enabled releases, follow [In-app alpha updates](updates.md): back up the private signing key, prepare/verify signed updater artifacts, publish assets before advancing the alpha feed, and test replacement/relaunch using a disposable notebook. Updater signatures do not provide Apple notarization.
 
 ## Live acceptance gates
 

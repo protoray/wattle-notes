@@ -1198,6 +1198,50 @@ kbd {
 .dialog-form label {
   margin-top: 0;
 }
+.app-updates .update-preference {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin: 1rem 0;
+}
+.update-preference input {
+  width: auto;
+}
+.update-notes {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: inherit;
+  max-height: 12rem;
+  overflow: auto;
+}
+.update-shade {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  background: rgb(0 0 0 / 55%);
+  padding: 1.5rem;
+}
+.update-progress {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 2rem;
+  max-width: 28rem;
+}
+.update-progress progress {
+  width: 100%;
+  accent-color: var(--accent);
+}
+.welcome-screen .app-updates {
+  max-width: 34rem;
+  text-align: left;
+}
+.modal .app-updates {
+  margin: 0 26px;
+}
 .settings-section {
   padding: 22px 0;
   border-bottom: 1px solid var(--line);

@@ -32,6 +32,8 @@ import Modal from './Modal';
 import Preview from './Preview';
 import LiveEditor from './LiveEditor';
 import Settings from './Settings';
+import AppUpdatesPanel, { UpdateProgress } from './AppUpdates';
+import { useAppUpdates } from './useAppUpdates';
 import ConflictView from './ConflictView';
 import HistoryView from './HistoryView';
 import Appearance from './Appearance';
@@ -128,10 +130,12 @@ export default function App() {
     }
     if (base.current?.id === note.id && draftRef.current !== base.current.content) return flush();
   }, []);
+  const updates = useAppUpdates(saveCurrent);
   useEffect(() => {
     if (!native) return;
     const registration = import('@tauri-apps/api/event').then(({ listen }) =>
       listen('notes-close-requested', () => {
+        if (updates.locked.current) return;
         void saveCurrent()
           .then(() => call('finish_exit'))
           .catch((error) => setMessage(`Save before closing: ${String(error)}`));
@@ -140,7 +144,7 @@ export default function App() {
     return () => {
       void registration.then((unlisten) => unlisten());
     };
-  }, [saveCurrent]);
+  }, [saveCurrent, updates.locked]);
   const refresh = useCallback(async () => {
     const next = await call<VaultInfo>('vault_info');
     setInfo(next);
@@ -281,6 +285,10 @@ export default function App() {
   }, [saveCurrent]);
   useEffect(() => {
     function key(event: KeyboardEvent) {
+      if (updates.locked.current) {
+        event.preventDefault();
+        return;
+      }
       if (!(event.metaKey || event.ctrlKey)) return;
       if (event.key.toLowerCase() === 's') {
         event.preventDefault();
@@ -298,7 +306,7 @@ export default function App() {
     }
     window.addEventListener('keydown', key);
     return () => window.removeEventListener('keydown', key);
-  }, []);
+  }, [updates.locked]);
   useEffect(() => {
     function before(event: BeforeUnloadEvent) {
       if (base.current && draftRef.current !== base.current.content) {
@@ -508,7 +516,7 @@ export default function App() {
 
   if (!info)
     return (
-      <main className="welcome-screen">
+      <main className="welcome-screen" inert={updates.busy}>
         <div className="welcome-mark">
           <BookOpen size={35} />
         </div>
@@ -530,14 +538,16 @@ export default function App() {
           Choose an existing Markdown folder or an empty folder to start.
         </p>
         {message && <p className="notice">{message}</p>}
+        <AppUpdatesPanel updates={updates} />
         <div className="welcome-footer">
           <ShieldCheck size={16} />
           Your words. Your files.
         </div>
+        <UpdateProgress updates={updates} />
       </main>
     );
   return (
-    <div className={`app-shell ${!sidebar ? 'sidebar-hidden' : ''}`}>
+    <div className={`app-shell ${!sidebar ? 'sidebar-hidden' : ''}`} inert={updates.busy}>
       <aside className="sidebar">
         <div className="brand">
           <div className="brand-icon">
@@ -739,7 +749,7 @@ export default function App() {
           </button>
           <button className="sidebar-action" onClick={() => startDialog('settings')}>
             <SettingsIcon size={17} />
-            <span>Settings</span>
+            <span>{updates.available ? 'Update available · Settings' : 'Settings'}</span>
           </button>
           <button className="sidebar-action" onClick={() => startDialog('appearance')}>
             <Palette size={17} />
@@ -1082,6 +1092,7 @@ export default function App() {
           )}
           {dialog === 'settings' && (
             <>
+              <AppUpdatesPanel updates={updates} />
               <div className="settings-section appearance-summary">
                 <div>
                   <h3>Appearance</h3>
@@ -1124,6 +1135,7 @@ export default function App() {
           {dialog === 'history' && <HistoryView item={historyItem} onChanged={onResolved} />}
         </Modal>
       )}
+      <UpdateProgress updates={updates} />
     </div>
   );
 }

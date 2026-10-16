@@ -17,6 +17,7 @@ Bundled SQLite is public domain; libsqlite3-sys and rusqlite have their own wrap
 | cargo | alloc-stdlib 0.3.0 | BSD-3-Clause | Package source |
 | cargo | android_system_properties 0.1.6 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-android_system_properties-0.1.6.txt) |
 | cargo | anyhow 1.0.104 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-anyhow-1.0.104.txt) |
+| cargo | arbitrary 1.5.0 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-arbitrary-1.5.0.txt) |
 | cargo | argon2 0.5.3 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-argon2-0.5.3.txt) |
 | cargo | async-broadcast 0.7.2 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-async-broadcast-0.7.2.txt) |
 | cargo | async-channel 2.5.0 | Apache-2.0 OR MIT | [License text](docs/dependency-licenses/cargo-async-channel-2.5.0.txt) |
@@ -95,6 +96,7 @@ Bundled SQLite is public domain; libsqlite3-sys and rusqlite have their own wrap
 | cargo | defmt-parser 1.0.0 | MIT OR Apache-2.0 | Package source |
 | cargo | defmt 1.1.1 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-defmt-1.1.1.txt) |
 | cargo | deranged 0.5.8 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-deranged-0.5.8.txt) |
+| cargo | derive_arbitrary 1.5.0 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-derive_arbitrary-1.5.0.txt) |
 | cargo | derive_more-impl 2.1.1 | MIT | [License text](docs/dependency-licenses/cargo-derive_more-impl-2.1.1.txt) |
 | cargo | derive_more 2.1.1 | MIT | [License text](docs/dependency-licenses/cargo-derive_more-2.1.1.txt) |
 | cargo | diffy 0.4.2 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-diffy-0.4.2.txt) |
@@ -126,6 +128,7 @@ Bundled SQLite is public domain; libsqlite3-sys and rusqlite have their own wrap
 | cargo | fastrand 2.5.0 | Apache-2.0 OR MIT | [License text](docs/dependency-licenses/cargo-fastrand-2.5.0.txt) |
 | cargo | fdeflate 0.3.7 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-fdeflate-0.3.7.txt) |
 | cargo | field-offset 0.3.6 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-field-offset-0.3.6.txt) |
+| cargo | filetime 0.2.29 | MIT/Apache-2.0 | [License text](docs/dependency-licenses/cargo-filetime-0.2.29.txt) |
 | cargo | find-msvc-tools 0.1.14 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-find-msvc-tools-0.1.14.txt) |
 | cargo | flate2 1.1.10 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-flate2-1.1.10.txt) |
 | cargo | fnv 1.0.7 | Apache-2.0 / MIT | [License text](docs/dependency-licenses/cargo-fnv-1.0.7.txt) |
@@ -211,10 +214,12 @@ Bundled SQLite is public domain; libsqlite3-sys and rusqlite have their own wrap
 | cargo | jiff-tzdb-platform 0.1.3 | Unlicense OR MIT | [License text](docs/dependency-licenses/cargo-jiff-tzdb-platform-0.1.3.txt) |
 | cargo | jiff-tzdb 0.1.9 | Unlicense OR MIT | [License text](docs/dependency-licenses/cargo-jiff-tzdb-0.1.9.txt) |
 | cargo | jiff 0.2.38 | Unlicense OR MIT | [License text](docs/dependency-licenses/cargo-jiff-0.2.38.txt) |
+| cargo | jni-macros 0.22.4 | MIT OR Apache-2.0 | Package source |
 | cargo | jni-sys-macros 0.4.1 | MIT OR Apache-2.0 | Package source |
 | cargo | jni-sys 0.3.1 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-jni-sys-0.3.1.txt) |
 | cargo | jni-sys 0.4.1 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-jni-sys-0.4.1.txt) |
 | cargo | jni 0.21.1 | MIT/Apache-2.0 | [License text](docs/dependency-licenses/cargo-jni-0.21.1.txt) |
+| cargo | jni 0.22.4 | MIT OR Apache-2.0 | Package source |
 | cargo | js-sys 0.3.106 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-js-sys-0.3.106.txt) |
 | cargo | json-patch 4.2.0 | MIT/Apache-2.0 | [License text](docs/dependency-licenses/cargo-json-patch-4.2.0.txt) |
 | cargo | jsonptr 0.7.1 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-jsonptr-0.7.1.txt) |
@@ -236,6 +241,7 @@ Bundled SQLite is public domain; libsqlite3-sys and rusqlite have their own wrap
 | cargo | memchr 2.8.3 | Unlicense OR MIT | [License text](docs/dependency-licenses/cargo-memchr-2.8.3.txt) |
 | cargo | memoffset 0.9.1 | MIT | [License text](docs/dependency-licenses/cargo-memoffset-0.9.1.txt) |
 | cargo | mime 0.3.17 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-mime-0.3.17.txt) |
+| cargo | minisign-verify 0.3.0 | MIT | [License text](docs/dependency-licenses/cargo-minisign-verify-0.3.0.txt) |
 | cargo | miniz_oxide 0.8.9 | MIT OR Zlib OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-miniz_oxide-0.8.9.txt) |
 | cargo | miniz_oxide 0.9.1 | MIT OR Zlib OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-miniz_oxide-0.9.1.txt) |
 | cargo | mio 1.2.4 | MIT | [License text](docs/dependency-licenses/cargo-mio-1.2.4.txt) |
@@ -268,6 +274,7 @@ Bundled SQLite is public domain; libsqlite3-sys and rusqlite have their own wrap
 | cargo | objc2-exception-helper 0.1.1 | Zlib OR Apache-2.0 OR MIT | Package source |
 | cargo | objc2-foundation 0.3.2 | MIT | Package source |
 | cargo | objc2-io-surface 0.3.2 | Zlib OR Apache-2.0 OR MIT | Package source |
+| cargo | objc2-osa-kit 0.3.2 | Zlib OR Apache-2.0 OR MIT | Package source |
 | cargo | objc2-quartz-core 0.3.2 | Zlib OR Apache-2.0 OR MIT | Package source |
 | cargo | objc2-ui-kit 0.3.2 | Zlib OR Apache-2.0 OR MIT | Package source |
 | cargo | objc2-user-notifications 0.3.2 | Zlib OR Apache-2.0 OR MIT | Package source |
@@ -276,8 +283,10 @@ Bundled SQLite is public domain; libsqlite3-sys and rusqlite have their own wrap
 | cargo | once_cell 1.21.4 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-once_cell-1.21.4.txt) |
 | cargo | opaque-debug 0.3.1 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-opaque-debug-0.3.1.txt) |
 | cargo | open 5.4.4 | MIT | [License text](docs/dependency-licenses/cargo-open-5.4.4.txt) |
+| cargo | openssl-probe 0.2.1 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-openssl-probe-0.2.1.txt) |
 | cargo | option-ext 0.2.0 | MPL-2.0 | [License text](docs/dependency-licenses/cargo-option-ext-0.2.0.txt) |
 | cargo | ordered-stream 0.2.0 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-ordered-stream-0.2.0.txt) |
+| cargo | osakit 0.3.1 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-osakit-0.3.1.txt) |
 | cargo | pango-sys 0.18.0 | MIT | [License text](docs/dependency-licenses/cargo-pango-sys-0.18.0.txt) |
 | cargo | pango 0.18.3 | MIT | [License text](docs/dependency-licenses/cargo-pango-0.18.3.txt) |
 | cargo | parking_lot_core 0.9.12 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-parking_lot_core-0.9.12.txt) |
@@ -339,12 +348,16 @@ Bundled SQLite is public domain; libsqlite3-sys and rusqlite have their own wrap
 | cargo | rustc_version 0.4.1 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-rustc_version-0.4.1.txt) |
 | cargo | rustc-hash 2.1.3 | Apache-2.0 OR MIT | [License text](docs/dependency-licenses/cargo-rustc-hash-2.1.3.txt) |
 | cargo | rustix 1.1.5 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | [License text](docs/dependency-licenses/cargo-rustix-1.1.5.txt) |
+| cargo | rustls-native-certs 0.8.5 | Apache-2.0 OR ISC OR MIT | [License text](docs/dependency-licenses/cargo-rustls-native-certs-0.8.5.txt) |
 | cargo | rustls-pki-types 1.15.1 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-rustls-pki-types-1.15.1.txt) |
+| cargo | rustls-platform-verifier-android 0.2.0 | MIT OR Apache-2.0 | Package source |
+| cargo | rustls-platform-verifier 0.7.1 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-rustls-platform-verifier-0.7.1.txt) |
 | cargo | rustls-webpki 0.103.15 | ISC | [License text](docs/dependency-licenses/cargo-rustls-webpki-0.103.15.txt) |
 | cargo | rustls 0.23.45 | Apache-2.0 OR ISC OR MIT | [License text](docs/dependency-licenses/cargo-rustls-0.23.45.txt) |
 | cargo | rustversion 1.0.23 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-rustversion-1.0.23.txt) |
 | cargo | ryu 1.0.23 | Apache-2.0 OR BSL-1.0 | [License text](docs/dependency-licenses/cargo-ryu-1.0.23.txt) |
 | cargo | same-file 1.0.6 | Unlicense/MIT | [License text](docs/dependency-licenses/cargo-same-file-1.0.6.txt) |
+| cargo | schannel 0.1.29 | MIT | [License text](docs/dependency-licenses/cargo-schannel-0.1.29.txt) |
 | cargo | schemars_derive 0.8.22 | MIT | [License text](docs/dependency-licenses/cargo-schemars_derive-0.8.22.txt) |
 | cargo | schemars 0.8.22 | MIT | [License text](docs/dependency-licenses/cargo-schemars-0.8.22.txt) |
 | cargo | schemars 0.9.0 | MIT | [License text](docs/dependency-licenses/cargo-schemars-0.9.0.txt) |
@@ -377,7 +390,9 @@ Bundled SQLite is public domain; libsqlite3-sys and rusqlite have their own wrap
 | cargo | sha2 0.10.9 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-sha2-0.10.9.txt) |
 | cargo | shlex 2.0.1 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-shlex-2.0.1.txt) |
 | cargo | signal-hook-registry 1.4.8 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-signal-hook-registry-1.4.8.txt) |
+| cargo | simd_cesu8 1.2.0 | Apache-2.0 OR MIT | [License text](docs/dependency-licenses/cargo-simd_cesu8-1.2.0.txt) |
 | cargo | simd-adler32 0.3.10 | MIT | [License text](docs/dependency-licenses/cargo-simd-adler32-0.3.10.txt) |
+| cargo | simdutf8 0.1.5 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-simdutf8-0.1.5.txt) |
 | cargo | siphasher 1.0.4 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-siphasher-1.0.4.txt) |
 | cargo | slab 0.4.12 | MIT | [License text](docs/dependency-licenses/cargo-slab-0.4.12.txt) |
 | cargo | smallvec 1.16.3 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-smallvec-1.16.3.txt) |
@@ -397,15 +412,19 @@ Bundled SQLite is public domain; libsqlite3-sys and rusqlite have their own wrap
 | cargo | syn 3.0.8 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-syn-3.0.8.txt) |
 | cargo | sync_wrapper 1.0.2 | Apache-2.0 | [License text](docs/dependency-licenses/cargo-sync_wrapper-1.0.2.txt) |
 | cargo | synstructure 0.14.0 | MIT | [License text](docs/dependency-licenses/cargo-synstructure-0.14.0.txt) |
+| cargo | system-configuration-sys 0.6.0 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-system-configuration-sys-0.6.0.txt) |
+| cargo | system-configuration 0.7.0 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-system-configuration-0.7.0.txt) |
 | cargo | system-deps 6.2.2 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-system-deps-6.2.2.txt) |
 | cargo | tao-macros 0.1.4 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-tao-macros-0.1.4.txt) |
 | cargo | tao 0.37.1 | Apache-2.0 | [License text](docs/dependency-licenses/cargo-tao-0.37.1.txt) |
+| cargo | tar 0.4.46 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-tar-0.4.46.txt) |
 | cargo | target-lexicon 0.12.16 | Apache-2.0 WITH LLVM-exception | [License text](docs/dependency-licenses/cargo-target-lexicon-0.12.16.txt) |
 | cargo | tauri-build 2.7.2 | Apache-2.0 OR MIT | [License text](docs/dependency-licenses/cargo-tauri-build-2.7.2.txt) |
 | cargo | tauri-codegen 2.7.2 | Apache-2.0 OR MIT | [License text](docs/dependency-licenses/cargo-tauri-codegen-2.7.2.txt) |
 | cargo | tauri-macros 2.7.2 | Apache-2.0 OR MIT | [License text](docs/dependency-licenses/cargo-tauri-macros-2.7.2.txt) |
 | cargo | tauri-plugin-dialog 2.8.2 | Apache-2.0 OR MIT | [License text](docs/dependency-licenses/cargo-tauri-plugin-dialog-2.8.2.txt) |
 | cargo | tauri-plugin-fs 2.7.0 | Apache-2.0 OR MIT | [License text](docs/dependency-licenses/cargo-tauri-plugin-fs-2.7.0.txt) |
+| cargo | tauri-plugin-updater 2.14.0 | Apache-2.0 OR MIT | [License text](docs/dependency-licenses/cargo-tauri-plugin-updater-2.14.0.txt) |
 | cargo | tauri-plugin 2.7.1 | Apache-2.0 OR MIT | Package source |
 | cargo | tauri-runtime-wry 2.12.1 | Apache-2.0 OR MIT | [License text](docs/dependency-licenses/cargo-tauri-runtime-wry-2.12.1.txt) |
 | cargo | tauri-runtime 2.12.1 | Apache-2.0 OR MIT | [License text](docs/dependency-licenses/cargo-tauri-runtime-2.12.1.txt) |
@@ -478,6 +497,7 @@ Bundled SQLite is public domain; libsqlite3-sys and rusqlite have their own wrap
 | cargo | web-time 1.1.0 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-web-time-1.1.0.txt) |
 | cargo | webkit2gtk-sys 2.0.2 | MIT | [License text](docs/dependency-licenses/cargo-webkit2gtk-sys-2.0.2.txt) |
 | cargo | webkit2gtk 2.0.2 | MIT | [License text](docs/dependency-licenses/cargo-webkit2gtk-2.0.2.txt) |
+| cargo | webpki-root-certs 1.0.9 | CDLA-Permissive-2.0 | [License text](docs/dependency-licenses/cargo-webpki-root-certs-1.0.9.txt) |
 | cargo | webpki-roots 1.0.9 | CDLA-Permissive-2.0 | [License text](docs/dependency-licenses/cargo-webpki-roots-1.0.9.txt) |
 | cargo | webview2-com-macros 0.8.1 | MIT | Package source |
 | cargo | webview2-com-sys 0.39.1 | MIT | Package source |
@@ -517,6 +537,7 @@ Bundled SQLite is public domain; libsqlite3-sys and rusqlite have their own wrap
 | cargo | windows-interface 0.59.3 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-windows-interface-0.59.3.txt) |
 | cargo | windows-link 0.2.1 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-windows-link-0.2.1.txt) |
 | cargo | windows-numerics 0.3.1 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-windows-numerics-0.3.1.txt) |
+| cargo | windows-registry 0.6.1 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-windows-registry-0.6.1.txt) |
 | cargo | windows-result 0.4.1 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-windows-result-0.4.1.txt) |
 | cargo | windows-strings 0.5.1 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-windows-strings-0.5.1.txt) |
 | cargo | windows-sys 0.45.0 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-windows-sys-0.45.0.txt) |
@@ -538,6 +559,7 @@ Bundled SQLite is public domain; libsqlite3-sys and rusqlite have their own wrap
 | cargo | wry 0.57.0 | Apache-2.0 OR MIT | [License text](docs/dependency-licenses/cargo-wry-0.57.0.txt) |
 | cargo | x11-dl 2.21.0 | MIT | [License text](docs/dependency-licenses/cargo-x11-dl-2.21.0.txt) |
 | cargo | x11 2.21.0 | MIT | [License text](docs/dependency-licenses/cargo-x11-2.21.0.txt) |
+| cargo | xattr 1.6.1 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-xattr-1.6.1.txt) |
 | cargo | xdg-home 1.3.0 | MIT | [License text](docs/dependency-licenses/cargo-xdg-home-1.3.0.txt) |
 | cargo | yoke-derive 0.8.4 | Unicode-3.0 | [License text](docs/dependency-licenses/cargo-yoke-derive-0.8.4.txt) |
 | cargo | yoke 0.8.3 | Unicode-3.0 | [License text](docs/dependency-licenses/cargo-yoke-0.8.3.txt) |
@@ -553,6 +575,7 @@ Bundled SQLite is public domain; libsqlite3-sys and rusqlite have their own wrap
 | cargo | zerotrie 0.2.5 | Unicode-3.0 | [License text](docs/dependency-licenses/cargo-zerotrie-0.2.5.txt) |
 | cargo | zerovec-derive 0.11.6 | Unicode-3.0 | [License text](docs/dependency-licenses/cargo-zerovec-derive-0.11.6.txt) |
 | cargo | zerovec 0.11.8 | Unicode-3.0 | [License text](docs/dependency-licenses/cargo-zerovec-0.11.8.txt) |
+| cargo | zip 4.6.1 | MIT | [License text](docs/dependency-licenses/cargo-zip-4.6.1.txt) |
 | cargo | zlib-rs 0.6.8 | Zlib | [License text](docs/dependency-licenses/cargo-zlib-rs-0.6.8.txt) |
 | cargo | zmij 1.0.23 | MIT | [License text](docs/dependency-licenses/cargo-zmij-1.0.23.txt) |
 | cargo | zvariant_derive 4.2.0 | MIT | [License text](docs/dependency-licenses/cargo-zvariant_derive-4.2.0.txt) |
@@ -613,6 +636,7 @@ Bundled SQLite is public domain; libsqlite3-sys and rusqlite have their own wrap
 | npm | @tauri-apps/cli-darwin-arm64 2.12.2 | Apache-2.0 OR MIT | Package source |
 | npm | @tauri-apps/cli 2.12.2 | Apache-2.0 OR MIT | [License text](docs/dependency-licenses/npm-tauri-apps-cli-2.12.2.txt) |
 | npm | @tauri-apps/plugin-dialog 2.8.2 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/npm-tauri-apps-plugin-dialog-2.8.2.txt) |
+| npm | @tauri-apps/plugin-updater 2.14.0 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/npm-tauri-apps-plugin-updater-2.14.0.txt) |
 | npm | @testing-library/dom 10.4.2 | MIT | [License text](docs/dependency-licenses/npm-testing-library-dom-10.4.2.txt) |
 | npm | @testing-library/react 16.3.3 | MIT | [License text](docs/dependency-licenses/npm-testing-library-react-16.3.3.txt) |
 | npm | @testing-library/user-event 14.6.7 | MIT | [License text](docs/dependency-licenses/npm-testing-library-user-event-14.6.7.txt) |

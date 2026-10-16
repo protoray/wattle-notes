@@ -13,6 +13,7 @@ An independent desktop Markdown notebook with encrypted Google Drive sync. Built
 - Local full-text search, wiki links, relative Markdown links, and backlinks.
 - Attachment imports, clipboard image paste, and bounded local image previews in Split and Read. Remote images are blocked.
 - Journaled saves, external-file scanning, Markdown import/export, and retained history.
+- Signed in-app alpha update checks, with optional startup checks and save-before-restart installation.
 - Passphrase-protected encryption with an independent recovery key.
 - Native Google OAuth, encrypted resumable uploads, immutable sync history, and a readable encrypted mirror.
 - Optional Nextcloud/WebDAV encrypted full backups and verified restore to a new folder.
@@ -32,6 +33,10 @@ npm run desktop:dev
 Choose an empty folder or an existing Markdown folder. Opening a folder assigns IDs to Markdown notes and stores local indexing, history, and queue data in `.notes/`. Back up that directory along with your notes if you want to retain unsynced history.
 
 `npm run dev` runs an **explicitly labelled, temporary browser preview**. It does not access local note folders or implement encryption/sync. Preview changes disappear when the page is reloaded.
+
+## App updates
+
+Updater-enabled builds check GitHub for new alpha releases at startup. In Settings → App updates you can check manually or disable startup checks. Choose Install update and restart when ready; the app verifies the download and saves your note before installation. Existing 0.1.1 installations need one manual upgrade to enable this. See [update signing and release instructions](docs/updates.md).
 
 ## Connect Google Drive
 

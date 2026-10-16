@@ -20,6 +20,7 @@ const root = fileURLToPath(new URL('..', import.meta.url));
 const sourceRoots = [
   'src',
   'src-tauri/src',
+  'src-tauri/examples',
   'src-tauri/icons',
   'src-tauri/capabilities',
   'scripts',
@@ -28,6 +29,7 @@ const sourceRoots = [
   'assets',
   '.github/workflows',
   'website',
+  'updates',
 ];
 const sourceFiles = [
   'README.md',
