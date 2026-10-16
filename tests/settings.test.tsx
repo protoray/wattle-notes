@@ -63,6 +63,12 @@ describe('Drive setup', () => {
     expect(screen.queryByLabelText('Desktop OAuth client ID')).toBeNull();
     expect(screen.queryByLabelText('Import Google client JSON')).toBeNull();
     expect(screen.queryByRole('link', { name: 'Create a Desktop app client' })).toBeNull();
+    expect(screen.getByRole('link', { name: 'Privacy Policy' }).getAttribute('href')).toBe(
+      'https://wattlenotes.app/privacy/',
+    );
+    expect(screen.getByRole('link', { name: 'Terms of Service' }).getAttribute('href')).toBe(
+      'https://wattlenotes.app/terms-of-service/',
+    );
     await userEvent.setup().click(button);
     await screen.findByText(
       'Google Drive connected. Next, protect your notes or restore an existing vault.',

@@ -147,6 +147,13 @@ export default function Settings({
           <p>
             Your notes stay on this computer. Sign in to sync encrypted copies across your devices.
           </p>
+          <p className="small muted">
+            Google access is limited to files created by Wattle Notes or made available to it. Note
+            contents are encrypted before upload; filenames and folders remain visible to Google.{' '}
+            {externalLink('https://wattlenotes.app/privacy/', 'Privacy Policy')}
+            {' · '}
+            {externalLink('https://wattlenotes.app/terms-of-service/', 'Terms of Service')}
+          </p>
           {!account?.connected ? (
             <>
               <button

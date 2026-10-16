@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { publicLink, publicSourcePath } from '../scripts/prepare-launch.mjs';
+import { googleBuildConfigured, publicLink, publicSourcePath } from '../scripts/prepare-launch.mjs';
 
 test('public source snapshots exclude handoff, local preferences, credentials, notes and caches', () => {
   for (const path of [
@@ -41,4 +41,20 @@ test('optional public links must be explicit HTTPS destinations without embedded
     'not-a-url',
   ])
     assert.throws(() => publicLink(url, 'supportUrl'));
+});
+
+test('configured packaging verifies the public Google client is in the actual native binary', () => {
+  const clientId = '123-release.apps.googleusercontent.com';
+  const binary = Buffer.from(`synthetic native data: ${clientId}`);
+  assert.equal(googleBuildConfigured(binary, { GOOGLE_CLIENT_ID: clientId }), true);
+  assert.equal(googleBuildConfigured(Buffer.from('unconfigured build'), {}), false);
+  assert.throws(() => googleBuildConfigured(binary, {}), /same GOOGLE_CLIENT_ID/);
+  assert.throws(
+    () => googleBuildConfigured(Buffer.from('wrong build'), { GOOGLE_CLIENT_ID: clientId }),
+    /does not contain/,
+  );
+  assert.throws(
+    () => googleBuildConfigured(binary, { GOOGLE_CLIENT_ID: 'invalid-private-input' }),
+    (error) => !error.message.includes('invalid-private-input'),
+  );
 });

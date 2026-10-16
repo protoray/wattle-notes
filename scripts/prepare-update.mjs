@@ -5,6 +5,7 @@ import { homedir } from 'node:os';
 import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { releaseEnvironment } from './build-release.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const require = createRequire(import.meta.url);
@@ -52,8 +53,13 @@ export async function prepareUpdate(tag, environment = process.env, spawn = spaw
     throw new Error(`Pass a matching release tag, for example ${validateTag}1.`);
   const privateKey =
     environment.TAURI_SIGNING_PRIVATE_KEY || join(homedir(), '.tauri/wattle-notes-updater.key');
+  const googleConfigured = !!environment.GOOGLE_CLIENT_ID?.trim();
+  const buildEnvironment =
+    googleConfigured || environment.GOOGLE_CLIENT_SECRET
+      ? releaseEnvironment(environment)
+      : environment;
   const env = {
-    ...environment,
+    ...buildEnvironment,
     TAURI_SIGNING_PRIVATE_KEY: privateKey,
     TAURI_SIGNING_PRIVATE_KEY_PASSWORD: environment.TAURI_SIGNING_PRIVATE_KEY_PASSWORD ?? '',
   };
@@ -112,7 +118,7 @@ export async function prepareUpdate(tag, environment = process.env, spawn = spaw
     )
   )
     throw new Error('Unexpected updater archive entries.');
-  const notes = `Wattle Notes ${pkg.version} developer alpha. Adds expandable notebooks with compact pages, selected-notebook page creation and collapsible Settings & tools. Mostly vibe coded with AI assistance. Mac build remains unsigned by Apple and not notarized. Google sign-in is not preconfigured.`;
+  const notes = `Wattle Notes ${pkg.version} developer alpha. ${googleConfigured ? 'Google sign-in is built in; users can connect without creating or importing an OAuth client.' : 'Google sign-in is not preconfigured.'} Includes expandable notebooks, compact pages and in-app privacy and terms links. Mostly vibe coded with AI assistance. Mac build remains unsigned by Apple and not notarized.`;
   const manifest = updateManifest({ version: pkg.version, tag, signature, notes });
   const destination = join(root, 'release/updater', tag);
   await mkdir(destination, { recursive: true });

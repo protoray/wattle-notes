@@ -15,6 +15,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { releaseEnvironment } from './build-release.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const sourceRoots = [
@@ -115,7 +116,23 @@ async function sha256(path) {
   return hash.digest('hex');
 }
 
-export async function prepareLaunch() {
+export function googleBuildConfigured(binary, environment = process.env) {
+  if (!environment.GOOGLE_CLIENT_ID?.trim()) {
+    if (/[0-9]+-[a-zA-Z0-9_-]+\.apps\.googleusercontent\.com/.test(binary.toString('latin1')))
+      throw new Error(
+        'This bundle contains a Google client. Package it with the same GOOGLE_CLIENT_ID used to build it.',
+      );
+    return false;
+  }
+  const checked = releaseEnvironment(environment);
+  if (!binary.includes(Buffer.from(checked.GOOGLE_CLIENT_ID)))
+    throw new Error(
+      'The Mac bundle does not contain the configured Google client. Rebuild it with the same client before packaging.',
+    );
+  return true;
+}
+
+export async function prepareLaunch(environment = process.env) {
   if (process.platform !== 'darwin')
     throw new Error(
       'This launch kit currently packages the verified Apple Silicon macOS build. Run on macOS with a matching native build.',
@@ -138,6 +155,7 @@ export async function prepareLaunch() {
     throw new Error('Build the macOS app first: npm run desktop:build -- --bundles app');
   });
   const header = await readFile(binary);
+  const googlePreconfigured = googleBuildConfigured(header, environment);
   if (header.readUInt32LE(0) !== 0xfeedfacf || header.readUInt32LE(4) !== 0x0100000c)
     throw new Error(
       'The current website download is labelled Apple Silicon; provide a matching ARM64 macOS build.',
@@ -182,6 +200,7 @@ export async function prepareLaunch() {
     'icon.svg',
     'assets',
     'privacy',
+    'terms-of-service',
     'getting-started',
   ])
     await cp(join(root, 'website', item), join(destination, item), { recursive: true });
@@ -231,7 +250,7 @@ export async function prepareLaunch() {
       channel: 'developer-alpha',
       platform: 'macos-arm64',
       signed: false,
-      googlePreconfigured: false,
+      googlePreconfigured,
       preparedAt: new Date().toISOString(),
       ...links,
       mac: downloads[0],
@@ -240,7 +259,7 @@ export async function prepareLaunch() {
     await writeFile(join(destination, 'release.json'), `${JSON.stringify(release, null, 2)}\n`);
     await writeFile(
       join(githubAssets, 'ALPHA-README.txt'),
-      `Wattle Notes ${pkg.version} — developer alpha\n\nmacOS Apple Silicon only. Unsigned; not notarized.\nLocal notes work without an account. Google sign-in is not preconfigured.\nCloud features still require live service acceptance testing.\nKeep independent backups and start with a test notebook.\n\nMatching source is in wattle-notes-source.zip, licensed GPL-3.0-or-later.\nSOURCE-SHA256SUMS.txt records its public source snapshot.\nSHA256SUMS.txt records both download archives.\n\nRepository: ${links.repositoryUrl}\nPublish these files as assets of a GitHub pre-release. Preparing them does not upload, tag or publish anything.\nDo not imply this is a signed or notarized release.\n\nSee the getting-started and privacy pages at ${links.homepage}\n`,
+      `Wattle Notes ${pkg.version} — developer alpha\n\nMostly vibe coded with AI assistance.\nmacOS Apple Silicon only. Unsigned by Apple; not notarized.\nLocal notes work without an account. ${googlePreconfigured ? 'Google sign-in is configured; users do not need to create an OAuth client.' : 'Google sign-in is not preconfigured.'}\nCloud conflict recovery and optional Nextcloud backup still require live service acceptance testing.\nKeep independent backups and start with a test notebook.\n\nMatching source is in wattle-notes-source.zip, licensed GPL-3.0-or-later.\nSOURCE-SHA256SUMS.txt records its public source snapshot.\nSHA256SUMS.txt records both download archives.\n\nRepository: ${links.repositoryUrl}\nPublish these files as assets of a GitHub pre-release. Preparing them does not upload, tag or publish anything.\nDo not imply this is an Apple-signed or notarized release.\n\nSee the getting-started, privacy and terms pages at ${links.homepage}\n`,
     );
     const kit = join(releaseDirectory, 'wattle-notes-launch-kit.zip');
     await rm(kit, { force: true });

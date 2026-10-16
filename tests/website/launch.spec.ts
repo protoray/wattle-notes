@@ -16,7 +16,7 @@ test('landing page is usable, theme previews work, and downloads match their che
   );
   const release = await (await request.get('/release.json')).json();
   expect(release.channel).toBe('developer-alpha');
-  expect(release.googlePreconfigured).toBe(false);
+  expect(release.googlePreconfigured).toBe(true);
   for (const entry of [release.mac, release.source]) {
     const body = await readFile(`release/github/${entry.name}`);
     expect(body.length).toBe(entry.size);
@@ -63,6 +63,17 @@ test('mobile layout and information pages work without a public demo', async ({
   await expect(page.getByRole('link', { name: 'browser demo', exact: true })).toHaveCount(0);
   expect((await request.get('/demo/')).status()).toBe(404);
   expect((await request.get('/demo/index.html')).status()).toBe(404);
+  await page.getByRole('link', { name: 'Terms of Service', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Terms of Service', exact: true })).toBeVisible();
+  await expect(
+    page.getByRole('link', { name: 'Privacy Policy', exact: true }).first(),
+  ).toHaveAttribute('href', '../privacy/');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({
+    path: 'test-results/terms-mobile.png',
+    fullPage: true,
+    animations: 'disabled',
+  });
 });
 
 test('site does not make third-party requests or offer missing local resources', async ({
@@ -73,7 +84,7 @@ test('site does not make third-party requests or offer missing local resources',
   page.on('request', (request) => {
     if (!request.url().startsWith('http://127.0.0.1:1430')) external.push(request.url());
   });
-  for (const url of ['/', '/privacy/', '/getting-started/']) {
+  for (const url of ['/', '/privacy/', '/getting-started/', '/terms-of-service/']) {
     await page.goto(url);
     await expect(page.locator('a[href*="/demo/"]')).toHaveCount(0);
     await expect(page.locator('a[href*="/downloads/"]')).toHaveCount(0);

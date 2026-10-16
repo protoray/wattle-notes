@@ -99,3 +99,7 @@ Updater assets are prepared and verified locally before publication. The alpha f
 - Production OAuth consent preparation, signing/notarization, and independent security review remain release work. The macOS bundle is a development alpha.
 
 Follow `docs/release.md` before distributing the app as a supported public release.
+
+## Production Google setup: maintainer acceptance, 16 October 2026
+
+The maintainer reports successful Google sign-in/consent, encrypted synchronization and restoration into a fresh folder using the production Desktop OAuth client. Google Auth Platform Audience is In production. This is owner-reported live service acceptance, distinct from the automated transport fixtures. Multi-device conflict recovery, interruption/quota/revocation cases, recovery-key restore, and live Nextcloud acceptance were not included in that confirmation and remain open. Version 0.1.4 embeds this same client for normal sign-in without per-user setup; its build contains only installed-app client parameters, never user access/refresh tokens.

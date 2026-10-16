@@ -87,13 +87,13 @@ Expand **Settings & tools** in the sidebar, then choose **Appearance**, or **Set
 - Empty folders are local organization; remote folders are created as files are mirrored. Case-equivalent paths and Windows-reserved names are rejected for portability. Symlinks are not followed.
 - Frontmatter values are preserved semantically; YAML comments and original formatting may be normalized. Avoid duplicating a `new_notes_id` when copying a note in another editor.
 - A sync operation serializes backend vault access. You can keep typing; local saves wait until the operation finishes. Unsaved drafts are indicated explicitly.
-- Google sign-in, real Drive behavior, platform signing, and packaged Windows/Linux validation need the release checks in [Release checklist](docs/release.md). The transport test double validates sync logic, not Google's production service.
+- The maintainer reports successful Google sign-in, encrypted sync and fresh-folder restore with the production OAuth setup on 16 October 2026. Broader Drive conflict/failure recovery, platform signing, and packaged Windows/Linux validation still need the release checks in [Release checklist](docs/release.md). The transport test double validates sync logic, not Google's production service.
 
 See [encrypted format](docs/encrypted-format.md), [architecture](docs/architecture.md), and [security model](docs/security.md).
 
 ## Website and alpha downloads
 
-The static launch website includes screenshot theme previews, privacy information, getting-started guidance, and links to the GitHub source repository and Releases page. App/source ZIPs and checksums are prepared separately in `release/github/` for manual GitHub release upload. The website bundle excludes download archives and the interactive notebook preview. Links are configured in `website/launch.json`. Preparing or pushing source files does not publish a release or update the WordPress website automatically.
+The static launch website includes screenshot theme previews, privacy information, [Terms of Service](https://wattlenotes.app/terms-of-service/), getting-started guidance, and links to the GitHub source repository and Releases page. App/source ZIPs and checksums are prepared separately in `release/github/` for manual GitHub release upload. The website bundle excludes download archives and the interactive notebook preview. Links are configured in `website/launch.json`. Preparing or pushing source files does not publish a release or update the WordPress website automatically.
 
 Run `npm run screenshots:site`, `npm run launch:prepare`, `npm run launch:verify -- --against-workspace`, then `npm run test:site` after building the Mac app. The deployable directory is `website/dist/`. See [the launch guide](docs/launch.md) for prerequisites, verification and remaining public-release gates.
 

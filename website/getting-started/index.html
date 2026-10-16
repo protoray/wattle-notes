@@ -69,16 +69,18 @@
       </p>
       <h2>4. Choose whether to connect cloud storage</h2>
       <p>
-        Local notes work without Google or Nextcloud. Public Google sign-in is still being prepared;
-        the developer alpha exposes client setup for contributors. Use the same Desktop OAuth client
-        on every device when testing Drive restoration. The GitHub repository includes the full
-        setup guide.
+        Local notes work without Google or Nextcloud. In the current download, open Settings &amp;
+        tools → Google Drive, choose Sign in with Google and approve access in your normal browser.
+        You do not need to create a Google Cloud project or import a client JSON. Choose Set up this
+        notebook and save your recovery key, or Restore from Drive to open an existing vault in an
+        empty folder. The GitHub repository includes the full setup guide.
       </p>
       <p>
         Nextcloud / WebDAV is an optional manual encrypted backup provider, separate from automatic
-        Drive sync. Neither provider has completed live service acceptance testing for this release.
-        Set up encryption, retain the recovery key, and verify a restore before relying on a cloud
-        copy.
+        Drive sync. The maintainer has tested Google sign-in, encrypted sync and restoration into a
+        fresh folder. Google conflict recovery and Nextcloud backup still need live service
+        acceptance testing. Set up encryption, retain the recovery key, and verify a restore before
+        relying on a cloud copy.
       </p>
       <div class="notice">
         <p>
@@ -124,6 +126,7 @@ npm run desktop:dev</code></pre>
       <nav aria-label="Footer">
         <a href="../">Home</a><a href="../privacy/">Privacy</a
         ><a href="https://github.com/protoray/wattle-notes">Source &amp; license</a>
+        <a href="../terms-of-service/">Terms of Service</a>
       </nav>
     </footer>
   </body>
