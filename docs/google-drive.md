@@ -25,7 +25,7 @@ The existing flow uses PKCE S256, OAuth state validation, a random localhost cal
 
 ## Contributors: local development
 
-`npm run desktop:dev` and `npm run desktop:build` still work without a bundled client. These are development builds, not configured distributions. Their **Developer Google connection settings** section offers Google setup links, bounded Desktop JSON import, and manual client entry. Web-client and service-account JSON files are rejected. Without a client, local editing and optional Nextcloud backup remain available.
+`npm run desktop:dev` and `npm run desktop:build` still work without a bundled client. Only the development server UI exposes **Developer Google connection settings**, with setup links, bounded Desktop JSON import and manual client entry. Web-client and service-account JSON files are rejected. Production builds never expose these controls; an unconfigured production build explains that Google sign-in is unavailable and directs users to the official release. Without a client, local editing and optional Nextcloud backup remain available.
 
 ## Troubleshooting
 
@@ -33,4 +33,4 @@ If an app-managed object is missing, restore it from Google Drive Trash and retr
 
 Official references: [Desktop OAuth](https://developers.google.com/identity/protocols/oauth2/native-app), [Drive scopes](https://developers.google.com/workspace/drive/api/guides/api-specific-auth), [resumable uploads](https://developers.google.com/workspace/drive/api/guides/manage-uploads).
 
-The configured 0.1.4 alpha uses the maintainer’s production Desktop client. On 16 October 2026, the maintainer confirmed successful sign-in, encrypted sync and restore into a fresh folder. Other live acceptance cases remain listed in the release checklist. Use the same client build environment for `updates:build` and `launch:prepare`; packaging verifies that the advertised client is present in the native binary. Keep the downloaded client JSON outside public source archives.
+The configured 0.1.5 alpha uses the maintainer’s production Desktop client. On 16 October 2026, the maintainer confirmed successful sign-in, encrypted sync and restore into a fresh folder. Other live acceptance cases remain listed in the release checklist. Use the same client build environment for `updates:build` and `launch:prepare`; packaging verifies that the advertised client is present in the native binary. Keep the downloaded client JSON outside public source archives.

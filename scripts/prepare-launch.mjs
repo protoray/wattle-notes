@@ -74,6 +74,8 @@ export function publicSourcePath(path) {
           '__pycache__',
           '.notes',
           '.DS_Store',
+          'AGENTS.md',
+          'CURRENT_STATE.md',
         ].includes(part) ||
         part.startsWith('.env') ||
         /\.(pem|key|p12|pfx|log|db|db-shm|db-wal|pyc|pyo|local\.json)$/i.test(part),

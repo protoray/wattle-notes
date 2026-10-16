@@ -20,6 +20,8 @@ __pycache__/
 *.db-wal
 .notes/
 docs/HANDOFF.md
+/AGENTS.md
+/docs/CURRENT_STATE.md
 *.pem
 *.key
 *.p12

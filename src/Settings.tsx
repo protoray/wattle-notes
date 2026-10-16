@@ -38,6 +38,7 @@ export default function Settings({
   const [requestBusy, setBusy] = useState(false);
   const busy = requestBusy || backupBusy;
   const [message, setMessage] = useState('');
+  const showDeveloperSetup = import.meta.env.DEV && account?.bundled_client === false;
   async function reload() {
     const next = await call<AccountInfo>('account_info');
     setAccount(next);
@@ -158,7 +159,7 @@ export default function Settings({
             <>
               <button
                 className="primary google-sign-in"
-                disabled={!native || busy || !account}
+                disabled={!native || busy || !account || (!clientId.trim() && !showDeveloperSetup)}
                 onClick={() => {
                   if (!clientId.trim()) {
                     setSetupRequested(true);
@@ -184,24 +185,32 @@ export default function Settings({
                 <Cloud size={18} />{' '}
                 {busy && operation === 'sign-in'
                   ? 'Waiting for Google…'
-                  : clientId.trim()
-                    ? 'Sign in with Google'
-                    : 'Set up Google sign-in'}
+                  : !account
+                    ? 'Loading Google connection…'
+                    : clientId.trim()
+                      ? 'Sign in with Google'
+                      : showDeveloperSetup
+                        ? 'Set up Google sign-in'
+                        : 'Google sign-in unavailable'}
                 <ExternalLink size={15} />
               </button>
               <p className="small muted">
-                {clientId.trim()
-                  ? 'Opens Google in your default browser. Sign in there, then return here.'
-                  : 'Google sign-in needs a one-time app setup before you can connect your account.'}
+                {!account
+                  ? 'Loading Google connection settings…'
+                  : clientId.trim()
+                    ? 'Opens Google in your default browser. Sign in there, then return here.'
+                    : showDeveloperSetup
+                      ? 'Google sign-in needs a one-time app setup before you can connect your account.'
+                      : 'Google sign-in is not configured in this app build. Install the latest official release, or continue with local notes.'}
               </p>
-              {setupRequested && (
+              {showDeveloperSetup && setupRequested && (
                 <p className="notice" role="status">
                   This alpha has no Google OAuth client configured yet. Follow the setup links
                   below, then import the Desktop app client JSON. The button will change to Sign in
                   with Google.
                 </p>
               )}
-              {!account?.bundled_client && (
+              {showDeveloperSetup && (
                 <details
                   ref={setupPanel}
                   className="oauth-setup"

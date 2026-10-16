@@ -24,7 +24,10 @@ beforeEach(() => {
     if (command === 'connect_drive') fixture.account!.connected = true;
   });
 });
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllEnvs();
+});
 
 describe('Desktop client import', () => {
   it('imports only Desktop client parameters and ignores supplied endpoint URLs', () => {
@@ -53,6 +56,48 @@ describe('Desktop client import', () => {
 });
 
 describe('Drive setup', () => {
+  it('keeps developer client setup out of production even with notebook client settings', async () => {
+    vi.stubEnv('DEV', false);
+    render(
+      <Settings onBackup={vi.fn()} onOpenRestore={vi.fn()} onChanged={vi.fn()} onSync={vi.fn()} />,
+    );
+    const button = await screen.findByRole('button', { name: 'Sign in with Google' });
+    expect(screen.queryByText('Developer Google connection settings')).toBeNull();
+    expect(screen.queryByLabelText('Import Google client JSON')).toBeNull();
+    await userEvent.setup().click(button);
+    expect(fixture.call).toHaveBeenCalledWith('connect_drive');
+  });
+  it('does not ask production users to create a client if a build is unconfigured', async () => {
+    vi.stubEnv('DEV', false);
+    fixture.account!.settings.client_id = '';
+    render(
+      <Settings onBackup={vi.fn()} onOpenRestore={vi.fn()} onChanged={vi.fn()} onSync={vi.fn()} />,
+    );
+    const button = await screen.findByRole('button', { name: 'Google sign-in unavailable' });
+    expect((button as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.getByText(/Install the latest official release/)).toBeDefined();
+    expect(screen.queryByText('Developer Google connection settings')).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Create a Desktop app client' })).toBeNull();
+    expect(screen.queryByLabelText('Import Google client JSON')).toBeNull();
+    expect(fixture.call).not.toHaveBeenCalledWith('connect_drive');
+  });
+  it('never shows developer setup before account information has loaded or when loading fails', async () => {
+    let rejectAccount!: (error: Error) => void;
+    fixture.call.mockImplementation(
+      () =>
+        new Promise((_, reject) => {
+          rejectAccount = reject;
+        }),
+    );
+    render(
+      <Settings onBackup={vi.fn()} onOpenRestore={vi.fn()} onChanged={vi.fn()} onSync={vi.fn()} />,
+    );
+    expect(screen.queryByText('Developer Google connection settings')).toBeNull();
+    expect(screen.queryByLabelText('Import Google client JSON')).toBeNull();
+    rejectAccount(new Error('Connection settings unavailable'));
+    await screen.findByText('Error: Connection settings unavailable');
+    expect(screen.queryByText('Developer Google connection settings')).toBeNull();
+  });
   it('uses bundled sign-in without exposing developer configuration or rewriting notebook settings', async () => {
     fixture.account!.bundled_client = true;
     render(

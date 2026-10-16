@@ -5,6 +5,8 @@ import { googleBuildConfigured, publicLink, publicSourcePath } from '../scripts/
 test('public source snapshots exclude handoff, local preferences, credentials, notes and caches', () => {
   for (const path of [
     'docs/HANDOFF.md',
+    'AGENTS.md',
+    'docs/CURRENT_STATE.md',
     'website/dist/downloads/app.zip',
     '.env',
     '.env.production',

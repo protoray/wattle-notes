@@ -103,3 +103,9 @@ Follow `docs/release.md` before distributing the app as a supported public relea
 ## Production Google setup: maintainer acceptance, 16 October 2026
 
 The maintainer reports successful Google sign-in/consent, encrypted synchronization and restoration into a fresh folder using the production Desktop OAuth client. Google Auth Platform Audience is In production. This is owner-reported live service acceptance, distinct from the automated transport fixtures. Multi-device conflict recovery, interruption/quota/revocation cases, recovery-key restore, and live Nextcloud acceptance were not included in that confirmation and remain open. Version 0.1.4 embeds this same client for normal sign-in without per-user setup; its build contains only installed-app client parameters, never user access/refresh tokens.
+
+## Production Google settings cleanup: 0.1.5 alpha
+
+Production UI excludes developer OAuth setup instructions, JSON import and manual client controls. Account loading or failure no longer exposes them. Existing notebook OAuth settings and tokens are preserved. Unconfigured production builds direct users to the official release instead of asking them to create a client. Only the development UI with an explicitly unbundled client exposes setup. Regression cases cover configured/unconfigured production settings and deferred/failed account loading.
+
+Local validation: 89 frontend tests, 10 Node checks, 15 app browser checks, four archive-verifier tests and lint/TypeScript passed. Further release checks are recorded when completed; earlier native upgrade/restart and owner-reported live Google tests retain their original scope.

@@ -87,7 +87,7 @@ def verify(root, against_workspace=False):
             raise ValueError("Source archive contains files outside its manifest")
         for path in actual_files:
             parts = pathlib.PurePosixPath(path).parts
-            if any(part.startswith(".env") or part in {".notes", "node_modules", "target", "dist", "HANDOFF.md", ".git", "__pycache__"} for part in parts):
+            if any(part.startswith(".env") or part in {".notes", "node_modules", "target", "dist", "HANDOFF.md", "AGENTS.md", "CURRENT_STATE.md", ".git", "__pycache__"} for part in parts):
                 raise ValueError(f"Private or generated source file included: {path}")
         for name in ["LICENSE", "THIRD_PARTY_NOTICES.md", "README.md", "package-lock.json", "src-tauri/Cargo.lock"]:
             archive.getinfo(prefix + name)
