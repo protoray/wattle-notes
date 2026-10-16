@@ -1,11 +1,11 @@
 {
-  "version": "0.1.2",
-  "notes": "Wattle Notes 0.1.2 developer alpha. Adds signed in-app update checks, download progress and save-before-restart. Mostly vibe coded with AI assistance. Mac build remains unsigned by Apple and not notarized. Google sign-in is not preconfigured.",
-  "pub_date": "2026-10-16T00:01:52.744Z",
+  "version": "0.1.3",
+  "notes": "Wattle Notes 0.1.3 developer alpha. Adds expandable notebooks with compact pages, selected-notebook page creation and collapsible Settings & tools. Mostly vibe coded with AI assistance. Mac build remains unsigned by Apple and not notarized. Google sign-in is not preconfigured.",
+  "pub_date": "2026-10-16T09:05:00.227Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTMFRwL3ZxSDU4UmdZcG1maTRCUGIram8wRVlha2dBYWNGMGxSTWl3bEF0ejRjVWJpRnh4dmhMVEVaR01mZ1lJUjJ4c0E1eU1heXhRSzAwMlhBOEt4bG84Z3pCRVNNbkFrPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMTA4OTEwCWZpbGU6V2F0dGxlIE5vdGVzLmFwcC50YXIuZ3oJdmVyc2lvbjowLjEuMgprdmVHL3Q2cDZTamxFT3ZPZzFUTFBwei80ODBGeW12dFVEaFVpTFJLdEJrQjdYVExkQnVNUXcyNzRUTTBVUVozSStST3p5bS91ZHVzQVZjbTkxYThEZz09Cg==",
-      "url": "https://github.com/protoray/wattle-notes/releases/download/v0.1.2-alpha.1/wattle-notes-macos-arm64.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTMFRwL3ZxSDU4UnVkcDRGd2pERTVTYzEzU3pUVFhEOU8xQTJaMTE5TlVTcG5veGUzUFVNL01lWHk3L3p3RFd1S2JZLzlvR1N0TnprUFBNMmovejFzdjdGTnVPekVaZVFnPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMTQxNDg1CWZpbGU6V2F0dGxlIE5vdGVzLmFwcC50YXIuZ3oJdmVyc2lvbjowLjEuMwowdVFpZjUyb1d5bU5zbHBJZWpYeWZOVE5oaUJQeTNQRzBNRzU5N2w0YUMwdUowT3dYRXBRd3Z3N1BmZFRTWDJSaGpXRGVmVnNXeFF4QUJZZkNqUGRCQT09Cg==",
+      "url": "https://github.com/protoray/wattle-notes/releases/download/v0.1.3-alpha.1/wattle-notes-macos-arm64.app.tar.gz"
     }
   }
 }
