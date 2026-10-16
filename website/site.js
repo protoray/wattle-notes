@@ -6,7 +6,7 @@ for (const button of document.querySelectorAll('[data-preview]')) {
     for (const other of document.querySelectorAll('[data-preview]'))
       other.setAttribute('aria-pressed', String(other === button));
     preview.src = `./assets/app-${id}.png`;
-    preview.alt = `Wattle Notes in the ${button.textContent} theme, showing a Markdown notebook with folders, search and a reading view`;
+    preview.alt = `Wattle Notes in the ${button.textContent} theme, showing expandable notebooks, pages, search and a reading view`;
   });
 }
 

@@ -6,6 +6,8 @@ test('capture the real browser preview for the launch website', async ({ page })
   await mkdir('website/assets', { recursive: true });
   await page.setViewportSize({ width: 1320, height: 860 });
   await page.goto('/');
+  await page.getByRole('button', { name: /^Ideas / }).click();
+  await page.getByRole('button', { name: 'A useful note', exact: true }).click();
   await page.getByRole('button', { name: 'Read', exact: true }).click();
   for (const theme of themes) {
     await page.getByRole('button', { name: 'Settings & tools', exact: true }).click();

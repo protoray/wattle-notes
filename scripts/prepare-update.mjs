@@ -112,7 +112,7 @@ export async function prepareUpdate(tag, environment = process.env, spawn = spaw
     )
   )
     throw new Error('Unexpected updater archive entries.');
-  const notes = `Wattle Notes ${pkg.version} developer alpha. Adds signed in-app update checks, download progress and save-before-restart. Mostly vibe coded with AI assistance. Mac build remains unsigned by Apple and not notarized. Google sign-in is not preconfigured.`;
+  const notes = `Wattle Notes ${pkg.version} developer alpha. Adds expandable notebooks with compact pages, selected-notebook page creation and collapsible Settings & tools. Mostly vibe coded with AI assistance. Mac build remains unsigned by Apple and not notarized. Google sign-in is not preconfigured.`;
   const manifest = updateManifest({ version: pkg.version, tag, signature, notes });
   const destination = join(root, 'release/updater', tag);
   await mkdir(destination, { recursive: true });
