@@ -1,13 +1,28 @@
 import { test, expect } from '@playwright/test';
-test('combined notebook sidebar leaves room to write and search reopens it', async ({ page }) => {
+test('compact notebooks and collapsed tools leave room to write at a small window size', async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 1320, height: 860 });
   await page.goto('/');
   const sidebar = page.getByRole('complementary');
-  await expect(sidebar.getByRole('textbox', { name: 'Search notes' })).toBeVisible();
-  await expect(sidebar.locator('.note-card')).toHaveCount(4);
-  await sidebar.getByText('Folders & tags', { exact: true }).click();
-  await expect(sidebar.getByRole('navigation', { name: 'Note folders' })).toBeVisible();
-  await sidebar.getByText('Folders & tags', { exact: true }).click();
+  const notebooks = sidebar.getByRole('region', { name: 'Notebooks and pages' });
+  await expect(sidebar.getByRole('textbox', { name: 'Search pages' })).toBeVisible();
+  await expect(notebooks.getByRole('button', { name: 'Welcome', exact: true })).toBeVisible();
+  await expect(notebooks.getByRole('button', { name: 'A useful note', exact: true })).toHaveCount(
+    0,
+  );
+  await notebooks.getByRole('button', { name: 'Expand notebook Ideas', exact: true }).click();
+  await expect(notebooks.getByRole('button', { name: 'A useful note', exact: true })).toBeVisible();
+  await notebooks.getByRole('button', { name: 'Collapse notebook Ideas', exact: true }).click();
+  await expect(notebooks.getByRole('button', { name: 'A useful note', exact: true })).toHaveCount(
+    0,
+  );
+  await expect(sidebar.getByRole('button', { name: 'Settings & tools' })).toHaveAttribute(
+    'aria-expanded',
+    'false',
+  );
+  await expect(sidebar.getByRole('button', { name: 'History & trash' })).toBeHidden();
+  await expect(sidebar.locator('.notebook-page p')).toHaveCount(0);
   const menuBounds = await sidebar.boundingBox();
   const writingBounds = await page.locator('.workspace').boundingBox();
   expect(menuBounds!.width).toBeLessThanOrEqual(320);
@@ -16,19 +31,148 @@ test('combined notebook sidebar leaves room to write and search reopens it', asy
   await page.getByRole('button', { name: 'Toggle notebook sidebar' }).click();
   await expect(sidebar).not.toBeVisible();
   await page.keyboard.press(process.platform === 'darwin' ? 'Meta+p' : 'Control+p');
-  await expect(sidebar.getByRole('textbox', { name: 'Search notes' })).toBeFocused();
+  await expect(sidebar.getByRole('textbox', { name: 'Search pages' })).toBeFocused();
   await page.setViewportSize({ width: 900, height: 600 });
   await expect(page.locator('.workspace')).toBeVisible();
   expect((await page.locator('.workspace').boundingBox())!.width).toBeGreaterThanOrEqual(620);
+  await expect(notebooks.getByRole('button', { name: 'Welcome', exact: true })).toBeVisible();
+  const captionBounds = await sidebar.getByText('Preview · session only').boundingBox();
+  expect(captionBounds!.y + captionBounds!.height).toBeLessThanOrEqual(600);
+  const pageBounds = await notebooks
+    .getByRole('button', { name: 'Welcome', exact: true })
+    .boundingBox();
+  expect(pageBounds!.height).toBeLessThanOrEqual(40);
+  await page.screenshot({ path: 'test-results/notebook-compact-900.png', fullPage: true });
 });
+
+test('pages belong to the selected notebook and search reaches pages in other notebooks', async ({
+  page,
+}) => {
+  await page.goto('/');
+  const notebooks = page.getByRole('region', { name: 'Notebooks and pages' });
+  await notebooks.getByRole('button', { name: /^Ideas / }).click();
+  await expect(notebooks.getByRole('button', { name: /^Ideas / })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(notebooks.getByRole('button', { name: 'A useful note', exact: true })).toBeVisible();
+  await notebooks.getByRole('button', { name: 'New page', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'A new page' });
+  await expect(dialog).toContainText('Saved in Ideas');
+  await dialog.getByRole('textbox').fill('Notebook page');
+  await dialog.getByRole('button', { name: 'Create', exact: true }).click();
+  const created = notebooks.getByRole('button', { name: 'Notebook page', exact: true });
+  await expect(created).toHaveAttribute('title', 'Ideas/Notebook page.md');
+  await expect(created).toHaveAttribute('aria-current', 'page');
+  await notebooks.getByRole('button', { name: 'Collapse notebook Ideas', exact: true }).click();
+  await expect(created).toHaveCount(0);
+  await notebooks.getByRole('button', { name: 'Expand notebook Ideas', exact: true }).click();
+  await expect(created).toBeVisible();
+  await page.getByRole('textbox', { name: 'Search pages' }).fill('Read slowly');
+  await expect(notebooks.locator('.notebook-page-button')).toHaveCount(1);
+  await notebooks.getByRole('button', { name: 'Reading list', exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Reading list', exact: true }).first(),
+  ).toBeVisible();
+  await page.getByRole('button', { name: 'Clear search', exact: true }).click();
+  await expect(
+    notebooks.getByRole('button', { name: 'Reading list', exact: true }),
+  ).toHaveAttribute('aria-current', 'page');
+  await expect(
+    notebooks.getByRole('button', { name: 'Collapse notebook Reading', exact: true }),
+  ).toHaveAttribute('aria-expanded', 'true');
+});
+test('tags filter pages across notebooks and leave the selected page reachable', async ({
+  page,
+}) => {
+  await page.goto('/');
+  const notebooks = page.getByRole('region', { name: 'Notebooks and pages' });
+  await page.getByText('Tags', { exact: true }).click();
+  const writingTag = page.locator('.tag-list').getByRole('button', { name: /writing/ });
+  await writingTag.click();
+  await expect(notebooks.locator('.notebook-page-button')).toHaveCount(1);
+  await notebooks.getByRole('button', { name: 'A useful note', exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: 'A useful note', exact: true }).first(),
+  ).toBeVisible();
+  await writingTag.click();
+  await expect(
+    notebooks.getByRole('button', { name: 'A useful note', exact: true }),
+  ).toHaveAttribute('aria-current', 'page');
+  await expect(
+    notebooks.getByRole('button', { name: 'Collapse notebook Ideas', exact: true }),
+  ).toBeVisible();
+});
+
+test('utility disclosure works from the keyboard and remembers its compact state', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 900, height: 600 });
+  await page.goto('/');
+  const tools = page.getByRole('button', { name: 'Settings & tools', exact: true });
+  await tools.focus();
+  await page.keyboard.press('Enter');
+  await expect(tools).toHaveAttribute('aria-expanded', 'true');
+  await page.getByRole('button', { name: 'History & trash', exact: true }).click();
+  await expect(page.getByRole('dialog', { name: 'History & trash', exact: true })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('button', { name: 'History & trash', exact: true })).toBeFocused();
+  await tools.focus();
+  await page.keyboard.press('Space');
+  await expect(page.getByRole('button', { name: 'History & trash', exact: true })).toBeHidden();
+  await page.reload();
+  await expect(tools).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.getByRole('button', { name: 'Settings', exact: true })).toBeHidden();
+});
+
+test('expanded tags and tools keep notebooks and every utility reachable at 900 by 600', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 900, height: 600 });
+  await page.goto('/');
+  const notebooks = page.getByRole('region', { name: 'Notebooks and pages' });
+  await notebooks.getByRole('button', { name: 'Expand notebook Ideas', exact: true }).click();
+  await notebooks.getByRole('button', { name: 'Expand notebook Reading', exact: true }).click();
+  await notebooks.getByRole('button', { name: 'A useful note', exact: true }).click();
+  await page.getByRole('button', { name: 'Read', exact: true }).click();
+  await page.getByText('Tags', { exact: true }).click();
+  await page.getByRole('button', { name: 'Settings & tools', exact: true }).click();
+  const navigation = notebooks.getByRole('navigation', { name: 'Notebook pages' });
+  expect((await navigation.boundingBox())!.height).toBeGreaterThanOrEqual(70);
+  const caption = await page.getByText('Preview · session only').boundingBox();
+  expect(caption!.y + caption!.height).toBeLessThanOrEqual(600);
+  const controls = page.locator('.sidebar-utilities-controls');
+  expect(await controls.evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(
+    true,
+  );
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await expect(
+    page.getByRole('dialog', { name: 'Your notebook settings', exact: true }),
+  ).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Appearance', exact: true }).click();
+  const appearance = page.getByRole('dialog', { name: 'Appearance', exact: true });
+  await expect(appearance.getByRole('radio')).toHaveCount(5);
+  await appearance.getByRole('button', { name: 'Done', exact: true }).click();
+  const darkMode = page.getByRole('switch', { name: 'Dark mode', exact: true });
+  await darkMode.scrollIntoViewIfNeeded();
+  await expect(darkMode).toBeInViewport();
+  await expect(darkMode).not.toBeChecked();
+  expect(await controls.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+  await page.screenshot({
+    path: 'test-results/notebook-both-expanded-900.png',
+    animations: 'disabled',
+  });
+});
+
 test('browser preview supports writing, searching, reading, and theme changes', async ({
   page,
 }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Welcome', exact: true })).toBeVisible();
   await expect(page.getByText('Preview · session only')).toBeVisible();
-  await page.getByRole('button', { name: 'New note', exact: false }).first().click();
-  const dialog = page.getByRole('dialog', { name: 'A new note' });
+  await page.getByRole('button', { name: 'New page', exact: false }).first().click();
+  const dialog = page.getByRole('dialog', { name: 'A new page' });
   await dialog.getByRole('textbox').fill('A test thought');
   await dialog.getByRole('button', { name: 'Create', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'A test thought', exact: true })).toBeVisible();
@@ -39,8 +183,9 @@ test('browser preview supports writing, searching, reading, and theme changes', 
   await expect(page.getByText('Unsaved changes')).not.toBeVisible({ timeout: 5000 });
   await page.getByRole('button', { name: 'Read', exact: true }).click();
   await expect(page.locator('.reading-page')).toContainText('A sentence worth finding.');
-  await page.getByRole('textbox', { name: 'Search notes' }).fill('worth finding');
-  await expect(page.locator('.note-card')).toHaveCount(1);
+  await page.getByRole('textbox', { name: 'Search pages' }).fill('worth finding');
+  await expect(page.locator('.notebook-page-button')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Settings & tools', exact: true }).click();
   await page.getByRole('switch', { name: 'Dark mode' }).click();
   await expect(page.getByRole('switch', { name: 'Dark mode' })).toBeChecked();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
@@ -88,6 +233,7 @@ test('appearance themes persist, preserve writing, and remember light and dark c
   await page.setViewportSize({ width: 1320, height: 860 });
   await page.goto('/');
   const content = await page.locator('.cm-content').innerText();
+  await page.getByRole('button', { name: 'Settings & tools', exact: true }).click();
   await page.getByRole('button', { name: 'Appearance', exact: true }).click();
   const dialog = page.getByRole('dialog', { name: 'Appearance', exact: true });
   await expect(dialog.getByRole('radio')).toHaveCount(5);
@@ -133,6 +279,7 @@ test('appearance themes persist, preserve writing, and remember light and dark c
 });
 test('settings explain the preview and cannot pretend to connect Drive', async ({ page }) => {
   await page.goto('/');
+  await page.getByRole('button', { name: 'Settings & tools', exact: true }).click();
   await page.getByRole('button', { name: 'Google Drive Connect', exact: true }).click();
   await expect(page.getByRole('dialog')).toContainText('unencrypted files');
   await expect(page.getByRole('link', { name: 'Create a Desktop app client' })).toHaveAttribute(
@@ -154,6 +301,7 @@ test('Nextcloud backup setup is discoverable and cannot upload from the browser 
   page,
 }) => {
   await page.goto('/');
+  await page.getByRole('button', { name: 'Settings & tools', exact: true }).click();
   await page.getByRole('button', { name: 'Nextcloud backup', exact: true }).click();
   await expect(
     page.getByRole('button', { name: 'Nextcloud backup', exact: true }).last(),

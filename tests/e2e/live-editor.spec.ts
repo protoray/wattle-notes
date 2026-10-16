@@ -5,8 +5,8 @@ test('Read supports rendered editing, formatting, undo and source preservation a
   page,
 }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: 'New note', exact: false }).first().click();
-  const dialog = page.getByRole('dialog', { name: 'A new note' });
+  await page.getByRole('button', { name: 'New page', exact: false }).first().click();
+  const dialog = page.getByRole('dialog', { name: 'A new page' });
   await dialog.getByRole('textbox').fill('Live editing');
   await dialog.getByRole('button', { name: 'Create', exact: true }).click();
   const source =
@@ -43,7 +43,7 @@ test('Read supports rendered editing, formatting, undo and source preservation a
   await expect(
     page.getByRole('heading', { name: 'A useful note', exact: true }).first(),
   ).toBeVisible();
-  await page.locator('.note-card').filter({ hasText: 'Live editing' }).click();
+  await page.locator('.notebook-page-button').filter({ hasText: 'Live editing' }).click();
   await expect(editor).toContainText('Added in Read.');
   await page.screenshot({ path: 'test-results/read-live-editor.png', fullPage: true });
 });

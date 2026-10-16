@@ -13,6 +13,7 @@ test('settings explains alpha updates without contacting GitHub from the preview
     if (/github(?:usercontent)?\.com/.test(request.url())) githubRequests.push(request.url());
   });
   await page.goto('/');
+  await page.getByRole('button', { name: 'Settings & tools', exact: true }).click();
   await page.getByRole('button', { name: 'Settings', exact: true }).click();
   const updates = page.getByRole('region', { name: 'App updates' });
   await expect(updates.getByText(`Wattle Notes ${version} · Developer alpha`)).toBeVisible();

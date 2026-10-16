@@ -1,0 +1,142 @@
+.notebook-pages {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  margin-top: 10px;
+}
+.notebook-pages-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 6px 7px;
+}
+.notebook-pages-heading h2 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 650;
+}
+.notebook-create-actions {
+  display: flex;
+  gap: 2px;
+}
+.notebook-new-page {
+  gap: 5px;
+  padding: 6px 8px;
+  white-space: nowrap;
+  font-size: 12px;
+}
+.notebook-pages nav {
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
+  padding: 2px 3px 12px;
+}
+.notebook-tree,
+.notebook-children {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.notebook-children {
+  padding-left: 15px;
+  border-left: 1px solid var(--line);
+  margin-left: 9px;
+}
+.notebook-row {
+  display: flex;
+  align-items: center;
+  border-radius: 6px;
+  margin: 2px 0;
+  min-width: 0;
+}
+.notebook-row.active {
+  background: var(--accent-soft);
+}
+.notebook-row:hover {
+  background: var(--hover);
+}
+.notebook-row button {
+  background: transparent;
+  border: 0;
+  border-radius: 5px;
+}
+.notebook-toggle {
+  padding: 8px 2px;
+  flex-shrink: 0;
+}
+.notebook-toggle[aria-expanded='true'] svg {
+  transform: rotate(90deg);
+}
+.notebook-toggle:disabled {
+  opacity: 1;
+  cursor: default;
+}
+.notebook-name {
+  padding: 8px 5px;
+  flex: 1;
+  justify-content: flex-start;
+  min-width: 0;
+  gap: 7px;
+}
+.notebook-name svg,
+.notebook-page-button svg {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+.notebook-name span,
+.notebook-page-button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.notebook-name span {
+  flex: 1;
+  text-align: left;
+  font-weight: 600;
+}
+.notebook-name small {
+  color: var(--muted);
+  flex-shrink: 0;
+  font-size: 11px;
+}
+.notebook-pages .notebook-page-button {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 7px;
+  width: 100%;
+  min-width: 0;
+  margin: 2px 0;
+  padding: 8px 7px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text);
+  text-align: left;
+}
+.notebook-pages .notebook-page-button:hover {
+  background: var(--hover);
+}
+.notebook-pages .notebook-page-button.selected {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.notebook-empty,
+.notebook-filter-caption,
+.notebook-no-matches {
+  color: var(--muted);
+  font-size: 12px;
+}
+.notebook-empty {
+  padding: 9px 6px;
+}
+.notebook-filter-caption {
+  margin: 0 7px 8px;
+  overflow-wrap: anywhere;
+}
+.notebook-no-matches {
+  margin: 8px 10px;
+}

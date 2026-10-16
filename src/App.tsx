@@ -6,21 +6,16 @@ import {
   ChevronRight,
   Cloud,
   FileText,
-  Folder,
   FolderOpen,
   History,
   Link2,
   Menu,
-  Moon,
-  MoreHorizontal,
   PanelRight,
   Palette,
   Paperclip,
   Plus,
   Search,
-  Settings as SettingsIcon,
   ShieldCheck,
-  Sun,
   Trash2,
   X,
 } from 'lucide-react';
@@ -29,6 +24,9 @@ import { replaceBody, resolveTarget, splitContent } from './content';
 import { attachmentMarkdown, importClipboardImages } from './clipboard-images';
 import type { AccountInfo, LinkInfo, Note, Revision, SyncStatus, VaultInfo } from './types';
 import Modal from './Modal';
+import NotebookPages from './NotebookPages';
+import SidebarUtilities from './SidebarUtilities';
+import { pageNotebook } from './notebook-tree';
 import Preview from './Preview';
 import LiveEditor from './LiveEditor';
 import Settings from './Settings';
@@ -96,6 +94,7 @@ export default function App() {
     base.current = note;
     draftRef.current = note?.content ?? '';
     setSelectedId(note?.id ?? null);
+    if (note) setFolder(pageNotebook(note.path));
     setDraft(note?.content ?? '');
     setLinkInfo(initialLinks);
   }, []);
@@ -149,10 +148,7 @@ export default function App() {
     const next = await call<VaultInfo>('vault_info');
     setInfo(next);
     const current = base.current;
-    if (!current) {
-      assign(next.notes[0] ?? null);
-      return;
-    }
+    if (!current) return;
     const updated = next.notes.find((n) => n.id === current.id);
     if (draftRef.current === current.content) {
       if (updated && updated.hash !== current.hash) assign(updated);
@@ -321,8 +317,8 @@ export default function App() {
     () => [...new Set(info?.notes.flatMap((n) => n.tags) ?? [])].sort(),
     [info?.notes],
   );
-  const notes = (searchResults ?? info?.notes ?? []).filter(
-    (n) => (!folder || n.path.startsWith(`${folder}/`)) && (!tag || n.tags.includes(tag)),
+  const filteredNotes = (searchResults ?? info?.notes ?? []).filter(
+    (n) => !tag || n.tags.includes(tag),
   );
   const selected = info?.notes.find((n) => n.id === selectedId) ?? base.current;
   const editorBody = splitContent(draft).body;
@@ -378,7 +374,7 @@ export default function App() {
     const next = await call<VaultInfo>('open_vault', { root });
     setInfo(next);
     assign(next.notes[0] ?? null);
-    setFolder('');
+    setFolder(pageNotebook(next.notes[0]?.path ?? ''));
     setTag('');
     setQuery('');
     setSearchResults(null);
@@ -397,8 +393,19 @@ export default function App() {
         const note = await call<Note>('create_note', { path });
         await refresh();
         assign(note);
+        setQuery('');
+        setSearchResults(null);
+        setTag('');
       }
-      if (dialog === 'new-folder') await call('create_folder', { path: field.trim() });
+      if (dialog === 'new-folder') {
+        const path = field.trim();
+        await call('create_folder', { path });
+        assign(null);
+        setFolder(path);
+        setQuery('');
+        setSearchResults(null);
+        setTag('');
+      }
       if (dialog === 'rename' && selected) {
         const note = await call<Note>('rename_note', {
           id: selected.id,
@@ -561,7 +568,7 @@ export default function App() {
           <span className="vault-avatar">{info.name[0].toUpperCase()}</span>
           <span>
             <strong>{info.name}</strong>
-            <small>{native ? 'Local notebook' : 'Browser preview'}</small>
+            <small>{native ? 'Workspace folder' : 'Browser preview'}</small>
           </span>
           <ChevronRight size={15} />
         </button>
@@ -569,8 +576,8 @@ export default function App() {
           <Search size={16} />
           <input
             ref={searchInput}
-            aria-label="Search notes"
-            placeholder="Search your notes"
+            aria-label="Search pages"
+            placeholder="Search your pages"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -580,69 +587,18 @@ export default function App() {
             </button>
           )}
         </div>
-        <div className="navigation-actions">
-          <button className="sidebar-action new-note" onClick={() => startDialog('new-note')}>
-            <Plus size={17} />
-            <span>New note</span>
-            <kbd>{navigator.platform.includes('Mac') ? '⌘' : 'Ctrl'} N</kbd>
-          </button>
-          <button
-            className={`sidebar-action ${!folder && !tag ? 'active' : ''}`}
-            onClick={() => {
-              setFolder('');
-              setTag('');
-            }}
-          >
-            <FileText size={17} />
-            <span>All notes</span>
-            <small>{info.notes.length}</small>
-          </button>
-        </div>
         <details className="organization">
           <summary>
-            Folders &amp; tags <ChevronRight size={14} />
+            Tags <ChevronRight size={14} />
           </summary>
           <div className="organization-content">
-            <div className="section-label">
-              FOLDERS
-              <button
-                className="icon-button"
-                aria-label="New folder"
-                onClick={() => startDialog('new-folder')}
-              >
-                <Plus size={14} />
-              </button>
-            </div>
-            <nav aria-label="Note folders">
-              {info.folders
-                .filter((f) => !f.startsWith('attachments'))
-                .map((f) => (
-                  <button
-                    style={{ paddingLeft: 16 + (f.split('/').length - 1) * 12 }}
-                    className={`sidebar-action ${folder === f ? 'active' : ''}`}
-                    key={f}
-                    onClick={() => {
-                      setFolder(f);
-                      setTag('');
-                    }}
-                  >
-                    <Folder size={16} />
-                    <span>{f.split('/').pop()}</span>
-                    <small>{info.notes.filter((n) => n.path.startsWith(f + '/')).length}</small>
-                  </button>
-                ))}
-            </nav>
-            <div className="section-label">TAGS</div>
             <div className="tag-list">
               {allTags.length ? (
                 allTags.map((t) => (
                   <button
                     className={`sidebar-action ${tag === t ? 'active' : ''}`}
                     key={t}
-                    onClick={() => {
-                      setTag(tag === t ? '' : t);
-                      setFolder('');
-                    }}
+                    onClick={() => setTag(tag === t ? '' : t)}
                   >
                     <span className="tag-hash">#</span>
                     <span>{t}</span>
@@ -654,123 +610,56 @@ export default function App() {
             </div>
           </div>
         </details>
-        <section className="note-column" aria-label="Notes">
-          <div className="note-column-heading">
-            <h2>{tag ? `# ${tag}` : folder.split('/').pop() || 'All notes'}</h2>
+        {(query.trim() || tag) && (
+          <div className="sidebar-filter-state">
+            <span>{tag ? `#${tag}` : 'Search results'}</span>
             <button
-              className="icon-button"
-              aria-label="Open notebook options"
-              onClick={() => startDialog('settings')}
+              onClick={() => {
+                setTag('');
+                setQuery('');
+                setSearchResults(null);
+              }}
             >
-              <MoreHorizontal size={19} />
+              All pages
             </button>
           </div>
-          <div className="list-caption">
-            <span>
-              {notes.length} {notes.length === 1 ? 'note' : 'notes'}
-            </span>
-            <span>Recently edited</span>
-          </div>
-          <div className="note-list">
-            {notes.map((note) => (
-              <button
-                className={`note-card ${selectedId === note.id ? 'selected' : ''}`}
-                key={note.id}
-                onClick={() => void choose(note)}
-              >
-                <div className="note-card-title">
-                  <FileText size={15} />
-                  <strong>{note.title}</strong>
-                </div>
-                <p>
-                  {splitContent(note.content)
-                    .body.replace(/^#+\s.*$/gm, '')
-                    .replace(/[[\]*_>`#]/g, '')
-                    .trim()
-                    .slice(0, 110) || 'An unwritten thought.'}
-                </p>
-                <div className="note-card-meta">
-                  <span>
-                    {new Date(note.modified * 1000).toLocaleDateString(undefined, {
-                      month: 'short',
-                      day: 'numeric',
-                    })}
-                  </span>
-                  {note.tags.slice(0, 1).map((t) => (
-                    <span className="mini-tag" key={t}>
-                      #{t}
-                    </span>
-                  ))}
-                </div>
-              </button>
-            ))}
-            {!notes.length && (
-              <div className="empty-list">
-                <Search size={25} />
-                <p>{query ? 'No matching notes.' : 'A fresh page awaits.'}</p>
-                <button onClick={() => startDialog('new-note')}>Create a note</button>
-              </div>
-            )}
-          </div>
-        </section>
-        <div className="sidebar-bottom">
-          <button
-            className="sidebar-action"
-            onClick={() => {
-              setSettingsTarget('google');
-              startDialog('settings');
-            }}
-          >
-            <Cloud size={17} />
-            <span>Google Drive</span>
-            <small>
-              {account?.connected ? (account.unlocked ? 'Connected' : 'Locked') : 'Connect'}
-            </small>
-          </button>
-          <button
-            className="sidebar-action"
-            onClick={() => {
-              setSettingsTarget('nextcloud');
-              startDialog('settings');
-            }}
-          >
-            <Cloud size={17} />
-            <span>Nextcloud backup</span>
-          </button>
-          <button
-            className="sidebar-action"
-            onClick={() => {
-              setHistoryItem(null);
-              startDialog('history');
-            }}
-          >
-            <History size={17} />
-            <span>History &amp; trash</span>
-          </button>
-          <button className="sidebar-action" onClick={() => startDialog('settings')}>
-            <SettingsIcon size={17} />
-            <span>{updates.available ? 'Update available · Settings' : 'Settings'}</span>
-          </button>
-          <button className="sidebar-action" onClick={() => startDialog('appearance')}>
-            <Palette size={17} />
-            <span>Appearance</span>
-          </button>
-          <button
-            className="sidebar-action theme-toggle"
-            role="switch"
-            aria-checked={dark}
-            aria-label="Dark mode"
-            onClick={() => setTheme(alternateTheme(theme))}
-          >
-            {dark ? <Sun size={17} /> : <Moon size={17} />}
-            <span>Dark mode</span>
-            <span className="theme-switch-track" aria-hidden="true" />
-          </button>
-          <div className="local-caption">
-            <span className="status-dot" />
-            {native ? 'Saved on this device' : 'Preview · session only'}
-          </div>
-        </div>
+        )}
+        <NotebookPages
+          info={info}
+          selectedId={selectedId}
+          selectedFolder={folder}
+          filteredNotes={filteredNotes}
+          filterActive={!!query.trim() || !!tag}
+          query={query}
+          onSelectNotebook={setFolder}
+          onSelectPage={(note) => void choose(note)}
+          onNewNotebook={(parent) => startDialog('new-folder', parent ? `${parent}/` : '')}
+          onNewPage={(path) => {
+            setFolder(path);
+            startDialog('new-note');
+          }}
+        />
+        <SidebarUtilities
+          account={account}
+          native={native}
+          dark={dark}
+          updateAvailable={!!updates.available}
+          onToggleDark={() => setTheme(alternateTheme(theme))}
+          onGoogle={() => {
+            setSettingsTarget('google');
+            startDialog('settings');
+          }}
+          onNextcloud={() => {
+            setSettingsTarget('nextcloud');
+            startDialog('settings');
+          }}
+          onHistory={() => {
+            setHistoryItem(null);
+            startDialog('history');
+          }}
+          onSettings={() => startDialog('settings')}
+          onAppearance={() => startDialog('appearance')}
+        />
       </aside>
       <main className="workspace">
         <header className="workspace-toolbar">
@@ -843,10 +732,10 @@ export default function App() {
           <>
             <div className="document-heading">
               <div>
-                <div className="eyebrow">{folder ? 'NOTEBOOK' : 'YOUR NOTEBOOK'}</div>
+                <div className="eyebrow">PAGE</div>
                 <h1>{selected.title}</h1>
                 <div className="document-meta">
-                  <span>Markdown note</span>
+                  <span>Markdown page</span>
                   <span className="meta-dot">·</span>
                   <span>{wordCount} words</span>
                   <button
@@ -893,7 +782,7 @@ export default function App() {
               </div>
               <button
                 className="icon-button danger"
-                aria-label="Delete note"
+                aria-label="Delete page"
                 onClick={() => startDialog('delete')}
               >
                 <Trash2 size={15} />
@@ -998,11 +887,11 @@ export default function App() {
           <div className="empty-document">
             <BookOpen size={42} />
             <h1>Start with a thought.</h1>
-            <p>Create a note, or bring an existing Markdown folder.</p>
+            <p>Create a page, or bring an existing Markdown folder.</p>
             <div className="button-row">
               <button className="primary" onClick={() => startDialog('new-note')}>
                 <Plus size={17} />
-                New note
+                New page
               </button>
               <button disabled={!native} onClick={() => void importExport(true)}>
                 Import a folder
@@ -1016,11 +905,11 @@ export default function App() {
           title={
             (
               {
-                'new-note': 'A new note',
-                'new-folder': 'A new folder',
-                rename: 'Rename note',
-                tags: 'Note tags',
-                delete: 'Delete this note?',
+                'new-note': 'A new page',
+                'new-folder': 'A new notebook',
+                rename: 'Rename page',
+                tags: 'Page tags',
+                delete: 'Delete this page?',
                 settings: 'Your notebook settings',
                 appearance: 'Appearance',
                 conflicts: 'Resolve conflicts',
@@ -1043,10 +932,10 @@ export default function App() {
                 {dialog === 'tags'
                   ? 'Tags, separated by commas'
                   : dialog === 'new-folder'
-                    ? 'Folder name'
+                    ? 'Notebook name'
                     : dialog === 'rename'
                       ? 'Filename, including folder'
-                      : 'Note name'}
+                      : 'Page name'}
                 <input
                   value={field}
                   onChange={(e) => setField(e.target.value)}
@@ -1060,7 +949,7 @@ export default function App() {
                 />
               </label>
               {dialog === 'new-note' && (
-                <p className="small muted">Saved in {folder || 'the notebook root'} as Markdown.</p>
+                <p className="small muted">Saved in {folder || info.name} as Markdown.</p>
               )}
               <div className="button-row">
                 <button type="button" onClick={closeDialog}>
@@ -1080,9 +969,9 @@ export default function App() {
                 History &amp; trash.
               </p>
               <div className="button-row">
-                <button onClick={closeDialog}>Keep note</button>
+                <button onClick={closeDialog}>Keep page</button>
                 <button className="danger-button" onClick={() => void submitDialog()}>
-                  Delete note
+                  Delete page
                 </button>
               </div>
             </div>

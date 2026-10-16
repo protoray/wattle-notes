@@ -6,6 +6,7 @@ import type { Note, Revision } from '../src/types';
 const fixture = vi.hoisted(() => ({
   note: null as Note | null,
   copies: [] as Note[],
+  folders: [] as string[],
   resolved: false,
   versions: [] as Revision[],
   onClose: null as (() => void) | null,
@@ -45,7 +46,7 @@ vi.mock('../src/api', () => ({
           root: fixture.currentRoot,
           name: fixture.currentRoot === 'test' ? 'Notebook' : 'Other notebook',
           notes: fixture.currentRoot === 'test' ? [note, ...fixture.copies] : [fixture.otherNote!],
-          folders: [],
+          folders: fixture.folders,
           status: {
             state: 'conflict',
             pending: 0,
@@ -85,11 +86,14 @@ vi.mock('../src/api', () => ({
         note.hash = 'resolved';
         fixture.resolved = true;
         return;
+      case 'create_folder':
+        fixture.folders.push(String(args.path));
+        return;
       case 'create_note': {
         const copy: Note = {
           id: 'copy',
           path: String(args.path),
-          title: 'Recovered draft',
+          title: String(args.path).split('/').pop()!.replace(/\.md$/, ''),
           content: '# Recovered draft\n',
           hash: 'new',
           tags: [],
@@ -143,6 +147,8 @@ beforeEach(() => {
     modified: 1,
   };
   fixture.copies = [];
+  fixture.folders = [];
+  localStorage.clear();
   fixture.resolved = false;
   fixture.onClose = null;
   fixture.saveGate = null;
@@ -216,10 +222,12 @@ describe('Selecting another notebook', () => {
     });
     render(<App />);
     await screen.findByLabelText('Markdown editor');
-    const search = screen.getByRole('textbox', { name: 'Search notes' });
+    const search = screen.getByRole('textbox', { name: 'Search pages' });
     fireEvent.change(search, { target: { value: 'Base note' } });
     await waitFor(() => expect(fixture.searchStarted).toHaveBeenCalledOnce());
-    await userEvent.setup().click(screen.getByRole('button', { name: /Notebook Local notebook/ }));
+    await userEvent
+      .setup()
+      .click(screen.getByRole('button', { name: /Notebook Workspace folder/ }));
     await waitFor(() =>
       expect((screen.getByLabelText('Markdown editor') as HTMLTextAreaElement).value).toBe(
         '# Other\n\nAnother notebook.\n',
@@ -232,7 +240,7 @@ describe('Selecting another notebook', () => {
     });
     const sidebar = within(screen.getByRole('complementary'));
     expect(sidebar.queryByRole('button', { name: /^Idea/ })).toBeNull();
-    expect(sidebar.getByRole('button', { name: /^Other\s/ })).toBeDefined();
+    expect(sidebar.getByRole('button', { name: 'Other' })).toBeDefined();
   });
   it('retains the current editor and saves pending text when the replacement cannot open', async () => {
     fixture.allowSave = true;
@@ -240,7 +248,9 @@ describe('Selecting another notebook', () => {
     render(<App />);
     const editor = await screen.findByLabelText('Markdown editor');
     fireEvent.change(editor, { target: { value: '# Idea\n\nKeep my latest writing.' } });
-    await userEvent.setup().click(screen.getByRole('button', { name: /Notebook Local notebook/ }));
+    await userEvent
+      .setup()
+      .click(screen.getByRole('button', { name: /Notebook Workspace folder/ }));
     await screen.findByText('Error: Selected folder is unavailable');
     expect(fixture.currentRoot).toBe('test');
     expect(fixture.note!.content).toBe('# Idea\n\nKeep my latest writing.');
@@ -280,5 +290,45 @@ describe('Conflict resolution returns to the current editor safely', () => {
     expect(fixture.copies).toHaveLength(1);
     expect(fixture.copies[0].content).toBe(draft);
     expect(fixture.copies[0].path).toContain('recovered draft');
+  });
+});
+
+describe('Notebook and page creation', () => {
+  it('keeps a new empty notebook selected and creates its page in that folder', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByLabelText('Markdown editor');
+    await user.click(screen.getByRole('button', { name: 'New notebook' }));
+    await user.type(screen.getByRole('textbox', { name: 'Notebook name' }), 'Work');
+    await user.click(screen.getByRole('button', { name: 'Create' }));
+    await screen.findByText('No pages yet.');
+    expect(screen.queryByLabelText('Markdown editor')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Collapse notebook Work' })).toBeDefined();
+    const navigation = within(screen.getByRole('region', { name: 'Notebooks and pages' }));
+    await user.click(navigation.getByRole('button', { name: 'New page' }));
+    await screen.findByText('Saved in Work as Markdown.');
+    await user.type(screen.getByRole('textbox', { name: 'Page name' }), 'Plans');
+    await user.click(screen.getByRole('button', { name: 'Create' }));
+    await screen.findByRole('heading', { name: 'Plans' });
+    expect(fixture.copies[0].path).toBe('Work/Plans.md');
+    expect(navigation.getByRole('button', { name: 'Plans' }).getAttribute('aria-current')).toBe(
+      'page',
+    );
+  });
+  it('retains the current page and creation notebook when saving before a page switch fails', async () => {
+    fixture.note!.path = 'Work/Idea.md';
+    fixture.folders = ['Work', 'Other'];
+    fixture.copies = [{ ...fixture.otherNote!, path: 'Other/Other.md' }];
+    const user = userEvent.setup();
+    render(<App />);
+    const editor = await screen.findByLabelText('Markdown editor');
+    await user.click(screen.getByRole('button', { name: 'Expand notebook Other' }));
+    fireEvent.change(editor, { target: { value: '# Idea\n\nUnsaved changes.' } });
+    await user.click(screen.getByRole('button', { name: 'Other' }));
+    await screen.findByText('Error: Resolve the conflict first');
+    expect((editor as HTMLTextAreaElement).value).toContain('Unsaved changes.');
+    expect(screen.getByRole('button', { name: 'Idea' }).getAttribute('aria-current')).toBe('page');
+    await user.click(screen.getByRole('button', { name: 'New page' }));
+    await screen.findByText('Saved in Work as Markdown.');
   });
 });

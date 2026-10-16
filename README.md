@@ -36,7 +36,7 @@ Choose an empty folder or an existing Markdown folder. Opening a folder assigns 
 
 ## App updates
 
-Updater-enabled builds check GitHub for new alpha releases at startup. In Settings → App updates you can check manually or disable startup checks. Choose Install update and restart when ready; the app verifies the download and saves your note before installation. Existing 0.1.1 installations need one manual upgrade to enable this. See [update signing and release instructions](docs/updates.md).
+Updater-enabled builds check GitHub for new alpha releases at startup. In Settings & tools → Settings → App updates you can check manually or disable startup checks. Choose Install update and restart when ready; the app verifies the download and saves your note before installation. Existing 0.1.1 installations need one manual upgrade to enable this. See [update signing and release instructions](docs/updates.md).
 
 ## Connect Google Drive
 
@@ -50,7 +50,7 @@ For another device: use the same configured app, open an empty local folder, con
 
 ## Back up to Nextcloud
 
-Open **Nextcloud backup** in the sidebar. Enter the WebDAV URL from Nextcloud Files settings, your username, and an app password, then **Save & test connection**. Set up or unlock encryption in **Protect your notes**, then **Back up now**. No Google account is needed.
+Open **Settings & tools → Nextcloud backup** in the sidebar. Enter the WebDAV URL from Nextcloud Files settings, your username, and an app password, then **Save & test connection**. Set up or unlock encryption in **Protect your notes**, then **Back up now**. No Google account is needed.
 
 Use **Find backups** to restore a snapshot into a new folder with its original passphrase or recovery key. These are manual full backups with retained history, separate from automatic Drive synchronization. See [Nextcloud setup and limits](docs/nextcloud.md).
 
@@ -71,11 +71,13 @@ npm run test:e2e          # Browser-preview interaction tests
 
 Rust formatting: `cargo fmt --manifest-path src-tauri/Cargo.toml --check`. Frontend formatting: `npx prettier --check src tests docs *.json *.ts *.js README.md CONTRIBUTING.md`.
 
-Shortcuts: **Cmd/Ctrl+N** creates a note, **Cmd/Ctrl+P** focuses search, and **Cmd/Ctrl+S** saves. Local autosave waits 500 ms. Connected, unlocked sync runs after five seconds of inactivity, every 30 seconds, on reconnect, or manually.
+The sidebar groups Markdown folders as expandable **notebooks**, with notes shown as compact **pages** underneath. Select a notebook before choosing **New page**; **New notebook** creates a Markdown folder. Existing files stay in place. Search and tags find pages across all notebooks. Expand **Settings & tools** for history, trash, sync, backups and appearance; notebook expansion and the tools disclosure are remembered on this device.
+
+Shortcuts: **Cmd/Ctrl+N** creates a page, **Cmd/Ctrl+P** focuses search, and **Cmd/Ctrl+S** saves. Local autosave waits 500 ms. Connected, unlocked sync runs after five seconds of inactivity, every 30 seconds, on reconnect, or manually.
 
 **Read** is a live Markdown editor. Click rendered text to write; formatting markers appear around the caret so you can edit the underlying Markdown. Use the toolbar or **Cmd/Ctrl+B**, **Cmd/Ctrl+I**, and **Cmd/Ctrl+K** for bold, italic, and links. **Cmd/Ctrl-click** a rendered link to follow it; ordinary clicks edit it. Write, Split and Read share one editor, so undo/redo, the caret and pending image pastes survive view switches. Autosave uses the same note draft in every view. Headings, emphasis, lists, task checkboxes, links and local images are displayed with formatting. Tables, fenced code and raw HTML remain visible as Markdown source; editing does not round-trip the document through HTML.
 
-Choose **Appearance** in the sidebar, or **Settings → Choose theme**, for Paper, Charcoal, Midnight, Sepia, and Forest. Charcoal is the neutral default dark theme; Forest retains the original green palette. Themes apply immediately and are remembered on this device. The **Dark mode** switch returns to your last chosen light or dark theme.
+Expand **Settings & tools** in the sidebar, then choose **Appearance**, or **Settings → Choose theme**, for Paper, Charcoal, Midnight, Sepia, and Forest. Charcoal is the neutral default dark theme; Forest retains the original green palette. Themes apply immediately and are remembered on this device. The **Dark mode** switch returns to your last chosen light or dark theme.
 
 ## Alpha boundaries
 

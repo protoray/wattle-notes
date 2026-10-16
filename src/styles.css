@@ -260,7 +260,7 @@ a {
   overflow: hidden;
   min-height: 0;
 }
-.sidebar > :not(.note-column) {
+.sidebar > :not(.notebook-pages) {
   flex-shrink: 0;
 }
 .brand {
@@ -1704,4 +1704,30 @@ kbd {
   flex: 1;
   min-height: 0;
   overflow: auto;
+}
+
+.sidebar-filter-state {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+  padding: 6px 8px 0;
+}
+.sidebar-filter-state > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sidebar-filter-state > button {
+  flex-shrink: 0;
+  padding: 3px 7px;
+  font-size: 11px;
+}
+
+@media (max-height: 700px) {
+  .organization-content {
+    max-height: 8vh;
+  }
 }
