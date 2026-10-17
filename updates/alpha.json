@@ -1,11 +1,11 @@
 {
-  "version": "0.1.4",
-  "notes": "Wattle Notes 0.1.4 developer alpha. Google sign-in is built in; users can connect without creating or importing an OAuth client. Includes expandable notebooks, compact pages and in-app privacy and terms links. Mostly vibe coded with AI assistance. Mac build remains unsigned by Apple and not notarized.",
-  "pub_date": "2026-10-16T10:52:32.842Z",
+  "version": "0.1.5",
+  "notes": "Wattle Notes 0.1.5 alpha removes developer Google setup instructions, JSON import and manual client controls from production builds, including during account loading. Google sign-in is built in. Existing notebook settings and notes are preserved. Mostly vibe coded with AI assistance. Mac build remains unsigned by Apple and not notarized.",
+  "pub_date": "2026-10-16T23:59:25.030Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTMFRwL3ZxSDU4UmthUEVORzVIek1IRUp6TmZnTmdIZHpGWWdzR1NleThSeXRhUDFWRlFpZmRnMUNCa2txbERIcHBpbkllcVUzZnZVeFNsZDJZdStYMEVJTi82NEtOVVFJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMTQ3OTM4CWZpbGU6V2F0dGxlIE5vdGVzLmFwcC50YXIuZ3oJdmVyc2lvbjowLjEuNApVMndKK2dkYzlEN1Q0TGtDNUNTK3g3dENkb3U4N3B4VlE1dytyakpPRTBYdUFzRmhaQ25JWWgzK29GeFdUakMyTHJyTzM0aG9JcTNtdzRPejFvQW9CQT09Cg==",
-      "url": "https://github.com/protoray/wattle-notes/releases/download/v0.1.4-alpha.1/wattle-notes-macos-arm64.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTMFRwL3ZxSDU4UnVVaWZwanByWTZ2MmprSTFMb1ZkUnhWVFRKZ2E1ZEdkV2k2U3JDS0dtOEx0UDlwcnlnQUpqeHpEdXdEOU1DejB5SlRUcXl6SFk5RGg2SURsaUh1dndJPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMTk1MDMzCWZpbGU6V2F0dGxlIE5vdGVzLmFwcC50YXIuZ3oJdmVyc2lvbjowLjEuNQpTWHA1d0VOT29Eb0lLOWZ2YXkrMHlJUWlGNDA4N2Q1V0lMejM2aWJPK1gzTVlsdFdsdVB2UE5ZQmVsVnRXZXQrbkhsbUVDTkhleG52WS9SQUlOb1FCQT09Cg==",
+      "url": "https://github.com/protoray/wattle-notes/releases/download/v0.1.5-alpha.1/wattle-notes-macos-arm64.app.tar.gz"
     }
   }
 }
