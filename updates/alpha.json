@@ -1,11 +1,11 @@
 {
-  "version": "0.1.6",
-  "notes": "Wattle Notes 0.1.6 developer alpha. Fixes attachment-heavy sync blocking local images, saves and connection settings. Adds sync phases and progress counts, reduces repeated Drive folder requests, and safely queues edits made during transfers. Google sign-in is built in; users can connect without creating or importing an OAuth client. Keeps existing notebook configuration and notes. Mostly vibe coded with AI assistance. Mac build remains unsigned by Apple and not notarized.",
-  "pub_date": "2026-10-17T00:34:40.886Z",
+  "version": "0.1.7",
+  "notes": "Wattle Notes 0.1.7 developer alpha. Corrects sync progress to count actual transfers instead of unchanged files being checked. Avoids rewriting unchanged attachments and downloading acknowledged own uploads again. Drive continues checking every 30 seconds for other-device changes, with history integrity checks retained. Google sign-in is built in; users can connect without creating or importing an OAuth client. Keeps existing notebook configuration and notes. Mostly vibe coded with AI assistance. Mac build remains unsigned by Apple and not notarized.",
+  "pub_date": "2026-10-17T02:57:55.228Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTMFRwL3ZxSDU4UnJEa3BjeEM0cEo0Skkxb1FldnI4eVVrSlZiejlXQXJXZTlEMDlvU3NzZGFyZWVhbGtUUWdTV3R6eDgrMEZaRU1DeFBudk1tMnJCV0duYXZ0UFRabXc4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMTk3MjYzCWZpbGU6V2F0dGxlIE5vdGVzLmFwcC50YXIuZ3oJdmVyc2lvbjowLjEuNgpvdm4vcmhDQ0w4SjRIdXZvaWZndTFGSHFoeUpqdGpKYnBBM2ZZTTV1bTIrQnBVaWYrVmhjd1cwOEFyRDBFdjVWam0waEgzZ1dnVmN6VTdCS3NBNFdCQT09Cg==",
-      "url": "https://github.com/protoray/wattle-notes/releases/download/v0.1.6-alpha.1/wattle-notes-macos-arm64.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTMFRwL3ZxSDU4UnBhb29VQzNlQlNJTzdFbmJReGdVUkVPMG11MUluOXN1ZnNXSS9iQm5KOWJLVE04UENmdnQ3dm8zb012clJwRGNSVVNPM2c4UEE4ZHcvVTlBL2pXMVE4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMjA1ODQ1CWZpbGU6V2F0dGxlIE5vdGVzLmFwcC50YXIuZ3oJdmVyc2lvbjowLjEuNwpXRjViRWUzcm9FKzRibHYrY1JBVk1WRXI3aVYxZFRQc1RvMHZGVW9wSmU1RFFOdysvMDdaNlh4cm4zMzFXcXlmS0F4a01mTXIzVzhNenBPR3NlRTBDdz09Cg==",
+      "url": "https://github.com/protoray/wattle-notes/releases/download/v0.1.7-alpha.1/wattle-notes-macos-arm64.app.tar.gz"
     }
   }
 }
