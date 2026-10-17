@@ -687,6 +687,10 @@ impl Vault {
                 deleted.parents = vec![heads[0].id.clone()];
                 deleted.deleted = true;
                 self.insert_revision(&deleted, false)?;
+                self.db.execute(
+                    "DELETE FROM state WHERE key=?",
+                    [format!("attachment:{}", deleted.path)],
+                )?;
             }
         }
         Ok(())

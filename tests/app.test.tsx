@@ -19,6 +19,8 @@ const fixture = vi.hoisted(() => ({
   searchGate: null as Promise<Note[]> | null,
   searchStarted: vi.fn(),
   otherNote: null as Note | null,
+  removedIds: [] as string[],
+  deleteFolder: vi.fn(),
 }));
 vi.mock('@tauri-apps/plugin-dialog', () => ({ open: fixture.folder }));
 vi.mock('@tauri-apps/api/event', () => ({
@@ -45,7 +47,10 @@ vi.mock('../src/api', () => ({
         return structuredClone({
           root: fixture.currentRoot,
           name: fixture.currentRoot === 'test' ? 'Notebook' : 'Other notebook',
-          notes: fixture.currentRoot === 'test' ? [note, ...fixture.copies] : [fixture.otherNote!],
+          notes:
+            fixture.currentRoot === 'test'
+              ? [note, ...fixture.copies].filter((n) => !fixture.removedIds.includes(n.id))
+              : [fixture.otherNote!],
           folders: fixture.folders,
           status: {
             state: 'conflict',
@@ -70,6 +75,21 @@ vi.mock('../src/api', () => ({
         return fixture.searchGate ?? [note];
       case 'history':
         return structuredClone(fixture.versions);
+      case 'deleted_folders':
+        return [];
+      case 'delete_folder': {
+        fixture.deleteFolder(String(args.path));
+        const path = String(args.path);
+        fixture.removedIds.push(
+          ...[note, ...fixture.copies]
+            .filter((n) => n.path.startsWith(`${path}/`))
+            .map((n) => n.id),
+        );
+        fixture.folders = fixture.folders.filter(
+          (folder) => folder !== path && !folder.startsWith(`${path}/`),
+        );
+        return;
+      }
       case 'conflicts':
         return fixture.resolved
           ? []
@@ -147,6 +167,8 @@ beforeEach(() => {
     modified: 1,
   };
   fixture.copies = [];
+  fixture.removedIds = [];
+  fixture.deleteFolder.mockReset();
   fixture.folders = [];
   localStorage.clear();
   fixture.resolved = false;
@@ -294,6 +316,43 @@ describe('Conflict resolution returns to the current editor safely', () => {
 });
 
 describe('Notebook and page creation', () => {
+  it('confirms notebook deletion, saves pending text, and keeps neighbouring notebooks', async () => {
+    fixture.allowSave = true;
+    fixture.resolved = true;
+    fixture.note!.path = 'Work/Idea.md';
+    fixture.folders = ['Work', 'Work/Nested', 'Workshop'];
+    fixture.copies = [{ ...fixture.otherNote!, path: 'Workshop/Other.md' }];
+    const user = userEvent.setup();
+    render(<App />);
+    const editor = await screen.findByLabelText('Markdown editor');
+    await user.click(screen.getByRole('button', { name: 'Delete notebook Work' }));
+    await user.click(screen.getByRole('button', { name: 'Keep notebook' }));
+    expect(fixture.deleteFolder).not.toHaveBeenCalled();
+    fireEvent.change(editor, { target: { value: '# Idea\n\nLatest text before deletion.' } });
+    await user.click(screen.getByRole('button', { name: 'Delete notebook Work' }));
+    await user.click(screen.getByRole('button', { name: 'Delete notebook' }));
+    await waitFor(() => expect(fixture.deleteFolder).toHaveBeenCalledWith('Work'));
+    expect(fixture.note!.content).toContain('Latest text before deletion.');
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(screen.queryByRole('button', { name: 'Expand notebook Work' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Collapse notebook Work' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Expand notebook Workshop' })).toBeTruthy();
+    expect(screen.queryByLabelText('Markdown editor')).toBeNull();
+  });
+  it('retains the notebook and pending draft when saving before deletion fails', async () => {
+    fixture.note!.path = 'Work/Idea.md';
+    fixture.folders = ['Work'];
+    const user = userEvent.setup();
+    render(<App />);
+    const editor = await screen.findByLabelText('Markdown editor');
+    fireEvent.change(editor, { target: { value: '# Idea\n\nKeep this unsaved draft.' } });
+    await user.click(screen.getByRole('button', { name: 'Delete notebook Work' }));
+    await user.click(screen.getByRole('button', { name: 'Delete notebook' }));
+    await screen.findByText('Error: Resolve the conflict first');
+    expect(fixture.deleteFolder).not.toHaveBeenCalled();
+    expect((editor as HTMLTextAreaElement).value).toContain('Keep this unsaved draft.');
+    expect(screen.getByRole('dialog', { name: 'Delete this notebook?' })).toBeTruthy();
+  });
   it('keeps a new empty notebook selected and creates its page in that folder', async () => {
     const user = userEvent.setup();
     render(<App />);

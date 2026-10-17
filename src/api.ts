@@ -1,5 +1,5 @@
 import { invoke, isTauri } from '@tauri-apps/api/core';
-import type { AccountInfo, LinkInfo, Note, VaultInfo } from './types';
+import type { AccountInfo, DeletedFolder, LinkInfo, Note, VaultInfo } from './types';
 import { resolveTarget } from './content';
 export const native = isTauri();
 
@@ -39,6 +39,7 @@ let demoNotes: Note[] = examples.map(([path, title, tags, content], i) => ({
   modified: Date.now() / 1000 - i * 86400,
 }));
 const demoFolders = ['Ideas', 'Reading', 'Journal'];
+const demoTrash: { entry: DeletedFolder; folders: string[]; notes: Note[] }[] = [];
 
 export async function call<T>(command: string, args: Record<string, unknown> = {}): Promise<T> {
   if (native) return invoke<T>(command, args);
@@ -119,6 +120,44 @@ export async function call<T>(command: string, args: Record<string, unknown> = {
       demoFolders.push(String(args.path));
       result = null;
       break;
+    case 'delete_folder': {
+      const path = String(args.path);
+      if (!path || !demoInfo().folders.includes(path)) throw new Error('Notebook folder not found');
+      const contains = (value: string) => value === path || value.startsWith(`${path}/`);
+      demoTrash.push({
+        entry: { id: crypto.randomUUID(), path, deleted_at: Date.now() / 1000 },
+        folders: demoFolders.filter(contains),
+        notes: demoNotes.filter((note) => note.path.startsWith(`${path}/`)),
+      });
+      demoNotes = demoNotes.filter((note) => !note.path.startsWith(`${path}/`));
+      for (let index = demoFolders.length - 1; index >= 0; index--)
+        if (contains(demoFolders[index])) demoFolders.splice(index, 1);
+      result = null;
+      break;
+    }
+    case 'deleted_folders':
+      result = demoTrash.map(({ entry }) => entry);
+      break;
+    case 'restore_folder': {
+      const index = demoTrash.findIndex(({ entry }) => entry.id === args.id);
+      if (index < 0) throw new Error('Deleted notebook not found');
+      const { entry, folders, notes } = demoTrash[index];
+      if (
+        demoFolders.some((path) => path === entry.path || path.startsWith(`${entry.path}/`)) ||
+        demoNotes.some(
+          (note) =>
+            note.path === entry.path ||
+            note.path.startsWith(`${entry.path}/`) ||
+            notes.some((restored) => restored.id === note.id),
+        )
+      )
+        throw new Error('A folder or page already uses this notebook’s path');
+      demoFolders.push(...folders);
+      demoNotes.push(...notes);
+      demoTrash.splice(index, 1);
+      result = null;
+      break;
+    }
     case 'search_notes':
       result = demoNotes.filter((n) =>
         (n.title + ' ' + n.content).toLowerCase().includes(String(args.query).toLowerCase()),

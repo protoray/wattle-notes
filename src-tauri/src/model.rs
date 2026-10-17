@@ -72,3 +72,10 @@ pub struct VaultInfo {
     pub folders: Vec<String>,
     pub status: SyncStatus,
 }
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct DeletedFolder {
+    pub id: String,
+    pub path: String,
+    pub deleted_at: u64,
+}

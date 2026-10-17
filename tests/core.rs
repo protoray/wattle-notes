@@ -27,6 +27,218 @@ fn vault() -> (TempDir, Vault) {
     let vault = Vault::open(dir.path()).unwrap();
     (dir, vault)
 }
+
+#[test]
+fn notebook_trash_preserves_nested_pages_files_and_empty_folders_after_restart() {
+    let (dir, mut v) = vault();
+    let page = v.create_note("Work/Plans/Page.md").unwrap();
+    let other = v.create_note("Workshop/Keep.md").unwrap();
+    v.create_folder("Work/Empty").unwrap();
+    fs::create_dir_all(dir.path().join("Work/attachments")).unwrap();
+    fs::write(
+        dir.path().join("Work/attachments/image.png"),
+        b"image bytes",
+    )
+    .unwrap();
+    fs::write(dir.path().join("Work/.private-file"), b"unindexed bytes").unwrap();
+    v.scan().unwrap();
+    let attachment = v
+        .revisions(None)
+        .unwrap()
+        .into_iter()
+        .find(|r| r.kind == ItemKind::Attachment)
+        .unwrap();
+    v.delete_folder("Work").unwrap();
+    assert!(!dir.path().join("Work").exists());
+    assert!(v.note(&page.id).is_err());
+    assert_eq!(v.note(&other.id).unwrap().path, "Workshop/Keep.md");
+    assert!(v.heads(&page.id).unwrap()[0].deleted);
+    assert!(v.heads(&attachment.item_id).unwrap()[0].deleted);
+    assert!(v.search("Page").unwrap().is_empty());
+    let entries = v.deleted_folders().unwrap();
+    assert_eq!(entries.len(), 1);
+    assert_eq!(entries[0].path, "Work");
+    drop(v);
+    let mut v = Vault::open(dir.path()).unwrap();
+    v.restore_folder(&entries[0].id).unwrap();
+    assert_eq!(v.note(&page.id).unwrap().content, page.content);
+    assert!(dir.path().join("Work/Empty").is_dir());
+    assert_eq!(
+        fs::read(dir.path().join("Work/.private-file")).unwrap(),
+        b"unindexed bytes"
+    );
+    assert_eq!(
+        fs::read(dir.path().join("Work/attachments/image.png")).unwrap(),
+        b"image bytes"
+    );
+    assert!(!v.heads(&attachment.item_id).unwrap()[0].deleted);
+    assert!(v.deleted_folders().unwrap().is_empty());
+    assert_eq!(v.search("Page").unwrap().len(), 1);
+}
+
+#[test]
+fn empty_notebooks_can_be_deleted_restored_and_deleted_again() {
+    let (_dir, mut v) = vault();
+    v.create_folder("Empty/Nested").unwrap();
+    v.delete_folder("Empty").unwrap();
+    assert!(!v.root.join("Empty").exists());
+    let first = v.deleted_folders().unwrap().remove(0);
+    v.restore_folder(&first.id).unwrap();
+    assert!(v.root.join("Empty/Nested").is_dir());
+    v.delete_folder("Empty").unwrap();
+    let second = v.deleted_folders().unwrap().remove(0);
+    assert_ne!(first.id, second.id);
+    assert!(v.restore_folder(&first.id).is_err());
+    v.restore_folder(&second.id).unwrap();
+    assert!(v.root.join("Empty/Nested").is_dir());
+}
+
+#[test]
+fn notebook_trash_rolls_back_failed_indexing_without_losing_files() {
+    let (_dir, mut v) = vault();
+    let note = v.create_note("Work/Page.md").unwrap();
+    v.db.execute_batch("CREATE TEMP TRIGGER fail_delete BEFORE INSERT ON revisions WHEN json_extract(NEW.data,'$.deleted') = 1 BEGIN SELECT RAISE(ABORT,'simulated index failure'); END;").unwrap();
+    assert!(v.delete_folder("Work").is_err());
+    assert_eq!(
+        fs::read_to_string(v.root.join("Work/Page.md")).unwrap(),
+        note.content
+    );
+    assert_eq!(v.note(&note.id).unwrap().content, note.content);
+    assert!(v.deleted_folders().unwrap().is_empty());
+    v.db.execute_batch("DROP TRIGGER fail_delete;").unwrap();
+    v.delete_folder("Work").unwrap();
+    let deleted = v.deleted_folders().unwrap().remove(0);
+    v.db.execute_batch("CREATE TEMP TRIGGER fail_restore BEFORE INSERT ON revisions WHEN json_extract(NEW.data,'$.deleted') = 0 BEGIN SELECT RAISE(ABORT,'simulated index failure'); END;").unwrap();
+    assert!(v.restore_folder(&deleted.id).is_err());
+    assert!(!v.root.join("Work").exists());
+    assert_eq!(v.deleted_folders().unwrap()[0].id, deleted.id);
+    v.db.execute_batch("DROP TRIGGER fail_restore;").unwrap();
+    v.restore_folder(&deleted.id).unwrap();
+    assert_eq!(v.note(&note.id).unwrap().content, note.content);
+}
+
+#[test]
+fn interrupted_notebook_moves_are_reconciled_on_reopen() {
+    let (dir, mut v) = vault();
+    let note = v.create_note("Work/Page.md").unwrap();
+    let id = Uuid::new_v4().to_string();
+    let metadata = v
+        .internal(&format!("folder-trash/{id}/entry.json"))
+        .unwrap();
+    let contents = v.internal(&format!("folder-trash/{id}/contents")).unwrap();
+    paths::atomic_write(
+        &metadata,
+        &serde_json::to_vec(&notes_core::model::DeletedFolder {
+            id: id.clone(),
+            path: "Work".into(),
+            deleted_at: 1,
+        })
+        .unwrap(),
+    )
+    .unwrap();
+    // Simulate exit after the move but before deletion revisions are indexed.
+    fs::rename(v.root.join("Work"), &contents).unwrap();
+    drop(v);
+    v = Vault::open(dir.path()).unwrap();
+    assert!(v.heads(&note.id).unwrap()[0].deleted);
+    assert_eq!(v.deleted_folders().unwrap()[0].id, id);
+    // Simulate the matching restore interruption before the live scan.
+    fs::rename(&contents, v.root.join("Work")).unwrap();
+    drop(v);
+    v = Vault::open(dir.path()).unwrap();
+    assert_eq!(v.note(&note.id).unwrap().content, note.content);
+    assert!(!v.heads(&note.id).unwrap()[0].deleted);
+    assert!(v.deleted_folders().unwrap().is_empty());
+}
+
+#[test]
+fn notebook_trash_rejects_root_unsafe_paths_conflicts_and_restore_collisions() {
+    let (dir, mut v) = vault();
+    let note = v.create_note("Work/Page.md").unwrap();
+    for path in [
+        "",
+        ".",
+        "..",
+        "../outside",
+        ".notes",
+        "Work/../Work",
+        "Work/Page.md",
+    ] {
+        assert!(v.delete_folder(path).is_err(), "{path}");
+    }
+    v.mark_conflict(&note.id, "test conflict").unwrap();
+    assert!(v.delete_folder("Work").is_err());
+    assert!(dir.path().join("Work/Page.md").exists());
+    v.clear_conflict(&note.id).unwrap();
+    let saved = v.heads(&note.id).unwrap()[0].id.clone();
+    v.delete_folder("Work").unwrap();
+    let deleted = v.deleted_folders().unwrap().remove(0);
+    v.create_note("Work/Keep.md").unwrap();
+    assert!(v.restore_folder(&deleted.id).is_err());
+    assert!(dir.path().join("Work/Keep.md").exists());
+    // Restore the original page separately, move it elsewhere, and ensure whole
+    // folder recovery will not introduce a second file with the same identity.
+    v.restore_revision(&saved).unwrap();
+    v.rename_note(&note.id, "Elsewhere.md").unwrap();
+    v.delete_folder("Work").unwrap();
+    assert!(v.restore_folder(&deleted.id).is_err());
+    assert!(dir.path().join("Elsewhere.md").exists());
+    assert!(v.restore_folder("../outside").is_err());
+}
+
+#[cfg(unix)]
+#[test]
+fn notebook_trash_does_not_follow_symlinks() {
+    use std::os::unix::fs::symlink;
+    let (_dir, mut v) = vault();
+    let outside = TempDir::new().unwrap();
+    fs::write(outside.path().join("keep.txt"), b"outside").unwrap();
+    symlink(outside.path(), v.root.join("Linked")).unwrap();
+    assert!(v.delete_folder("Linked").is_err());
+    v.create_folder("Work").unwrap();
+    symlink(outside.path(), v.root.join("Work/link")).unwrap();
+    v.delete_folder("Work").unwrap();
+    let deleted = v.deleted_folders().unwrap().remove(0);
+    v.restore_folder(&deleted.id).unwrap();
+    assert!(fs::symlink_metadata(v.root.join("Work/link"))
+        .unwrap()
+        .file_type()
+        .is_symlink());
+    assert_eq!(
+        fs::read(outside.path().join("keep.txt")).unwrap(),
+        b"outside"
+    );
+}
+
+#[tokio::test]
+async fn notebook_deletion_and_restore_sync_pages_and_attachments() {
+    let (_a, mut a) = vault();
+    let (_b, mut b) = vault();
+    let remote = MemoryRemote::default();
+    let (config, key, _) = encryption();
+    let note = a.create_note("Work/Page.md").unwrap();
+    fs::write(a.root.join("Work/image.png"), b"attachment").unwrap();
+    for v in [&mut a, &mut b] {
+        sync::synchronize(v, &remote, &config, &key).await.unwrap();
+    }
+    a.delete_folder("Work").unwrap();
+    for v in [&mut a, &mut b] {
+        sync::synchronize(v, &remote, &config, &key).await.unwrap();
+    }
+    assert!(b.notes().unwrap().is_empty());
+    assert!(!b.root.join("Work/image.png").exists());
+    assert!(b.deleted_folders().unwrap().is_empty());
+    let deleted = a.deleted_folders().unwrap().remove(0);
+    a.restore_folder(&deleted.id).unwrap();
+    for v in [&mut a, &mut b] {
+        sync::synchronize(v, &remote, &config, &key).await.unwrap();
+    }
+    assert_eq!(b.note(&note.id).unwrap().content, note.content);
+    assert_eq!(
+        fs::read(b.root.join("Work/image.png")).unwrap(),
+        b"attachment"
+    );
+}
 fn revision(item: &str, path: &str, body: &str, parents: Vec<String>) -> Revision {
     Revision {
         id: Uuid::new_v4().to_string(),

@@ -32,6 +32,7 @@ const props = (overrides: Partial<NotebookPagesProps> = {}): NotebookPagesProps 
   onSelectPage: vi.fn(),
   onNewNotebook: vi.fn(),
   onNewPage: vi.fn(),
+  onDeleteNotebook: vi.fn(),
   ...overrides,
 });
 
@@ -61,6 +62,18 @@ describe('notebook grouping', () => {
 });
 
 describe('notebook/page navigation', () => {
+  it('offers deletion for subnotebooks but protects the workspace root and waits for sync', async () => {
+    const user = userEvent.setup();
+    const callbacks = props();
+    const { rerender } = render(<NotebookPages {...callbacks} />);
+    expect(screen.queryByRole('button', { name: 'Delete notebook My notes' })).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Delete notebook Empty' }));
+    expect(callbacks.onDeleteNotebook).toHaveBeenCalledWith('Empty');
+    rerender(<NotebookPages {...callbacks} syncing />);
+    expect(
+      (screen.getByRole('button', { name: 'Delete notebook Work' }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+  });
   it('expands nested notebooks using keyboard buttons and selects a page with its containing folder', async () => {
     const user = userEvent.setup();
     const callbacks = props();

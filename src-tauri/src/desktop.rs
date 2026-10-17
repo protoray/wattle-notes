@@ -259,6 +259,18 @@ async fn create_folder(state: State<'_, AppState>, path: String) -> Command<()> 
     local(&state, move |v| v.create_folder(&path)).await
 }
 #[tauri::command]
+async fn delete_folder(state: State<'_, AppState>, path: String) -> Command<()> {
+    exclusive_local(&state, move |v| v.delete_folder(&path)).await
+}
+#[tauri::command]
+async fn deleted_folders(state: State<'_, AppState>) -> Command<Vec<DeletedFolder>> {
+    local(&state, |v| v.deleted_folders()).await
+}
+#[tauri::command]
+async fn restore_folder(state: State<'_, AppState>, id: String) -> Command<()> {
+    exclusive_local(&state, move |v| v.restore_folder(&id)).await
+}
+#[tauri::command]
 async fn search_notes(state: State<'_, AppState>, query: String) -> Command<Vec<Note>> {
     local(&state, move |v| v.search(&query)).await
 }
@@ -817,6 +829,9 @@ pub fn run() {
             rename_note,
             delete_note,
             create_folder,
+            delete_folder,
+            deleted_folders,
+            restore_folder,
             search_notes,
             import_folder,
             export_vault,

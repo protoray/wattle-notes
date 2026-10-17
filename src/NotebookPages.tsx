@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { BookOpen, ChevronRight, FilePlus2, FileText, FolderPlus } from 'lucide-react';
+import { BookOpen, ChevronRight, FilePlus2, FileText, FolderPlus, Trash2 } from 'lucide-react';
 import type { Note, VaultInfo } from './types';
 import {
   buildNotebookTree,
@@ -21,6 +21,8 @@ export interface NotebookPagesProps {
   onSelectPage: (note: Note, folder: string) => void;
   onNewNotebook: (parentPath: string) => void;
   onNewPage: (folderPath: string) => void;
+  onDeleteNotebook: (path: string) => void;
+  syncing?: boolean;
 }
 
 function readExpansion(key: string, selectedPath: string | null) {
@@ -52,6 +54,8 @@ function NotebookPagesWorkspace({
   onSelectPage,
   onNewNotebook,
   onNewPage,
+  onDeleteNotebook,
+  syncing = false,
 }: NotebookPagesProps) {
   const tree = useMemo(() => buildNotebookTree(info, filteredNotes), [info, filteredNotes]);
   const storageKey = `wattle-notes:notebook-expansion:${info.root}`;
@@ -139,6 +143,20 @@ function NotebookPagesWorkspace({
             <span>{node.name}</span>
             <small aria-label={countLabel}>{count}</small>
           </button>
+          {node.path && (
+            <button
+              className="notebook-delete"
+              type="button"
+              aria-label={`Delete notebook ${node.path}`}
+              title={
+                syncing ? 'Wait for sync to finish before deleting a notebook' : 'Delete notebook'
+              }
+              disabled={syncing}
+              onClick={() => onDeleteNotebook(node.path)}
+            >
+              <Trash2 size={14} aria-hidden="true" />
+            </button>
+          )}
         </div>
         {open && (
           <ul className="notebook-children">

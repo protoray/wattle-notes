@@ -24,6 +24,8 @@ Non-overlapping Markdown changes merge from a unique common ancestor. Merge IDs 
 
 Tombstones represent deletion without erasing history. Restoration creates another revision. Uploaded identities are persisted before requests. Blobs are uploaded before dependent revisions; revisions are uploaded in parent order. The readable tree is a rebuildable projection of history, never the authoritative source of edits.
 
+Notebook deletion moves the entire directory to `.notes/folder-trash/<uuid>/contents`, with an original-path descriptor written before the move. Scanning then records ordinary note/attachment tombstones. Empty directories and unindexed files remain recoverable locally; the folder archive itself is not a sync object. Restore refuses occupied paths, existing page identities and unresolved conflicts before moving the directory back and scanning new live revisions. Failed scans attempt a rollback, and interrupted moves leave the files either in their original location or in local Trash for the next scan. Folder operations use the idle-only local operation gate. Attachment tombstones invalidate cached file hashes so putting identical bytes back records a live revision.
+
 ## Drive layout
 
 ```text

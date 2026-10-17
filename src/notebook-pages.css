@@ -101,6 +101,16 @@
   flex-shrink: 0;
   font-size: 11px;
 }
+.notebook-delete {
+  flex-shrink: 0;
+  padding: 8px 5px;
+  color: var(--muted);
+}
+.notebook-delete:hover,
+.notebook-delete:focus-visible {
+  color: var(--text);
+  background: var(--accent-soft);
+}
 .notebook-pages .notebook-page-button {
   display: flex;
   align-items: center;
@@ -139,4 +149,18 @@
 }
 .notebook-no-matches {
   margin: 8px 10px;
+}
+.folder-trash-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 10px 0;
+}
+.folder-trash-row span {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.folder-trash-row button {
+  flex-shrink: 0;
 }

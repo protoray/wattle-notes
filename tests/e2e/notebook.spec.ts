@@ -1,4 +1,44 @@
 import { test, expect } from '@playwright/test';
+test('notebook deletion confirms the folder and restores its pages from local Trash', async ({
+  page,
+}) => {
+  await page.goto('/');
+  const notebooks = page.getByRole('region', { name: 'Notebooks and pages' });
+  await expect(
+    notebooks.getByRole('button', { name: 'Delete notebook My notebook', exact: true }),
+  ).toHaveCount(0);
+  await notebooks.getByRole('button', { name: 'Expand notebook Ideas', exact: true }).click();
+  await notebooks.getByRole('button', { name: 'A useful note', exact: true }).click();
+  await notebooks.getByRole('button', { name: 'Delete notebook Ideas', exact: true }).click();
+  const confirm = page.getByRole('dialog', { name: 'Delete this notebook?' });
+  await expect(confirm).toContainText('all its subnotebooks, pages and files');
+  await confirm.getByRole('button', { name: 'Keep notebook' }).click();
+  await expect(notebooks.getByRole('button', { name: 'A useful note', exact: true })).toBeVisible();
+  await notebooks.getByRole('button', { name: 'Delete notebook Ideas', exact: true }).click();
+  await confirm.getByRole('button', { name: 'Delete notebook', exact: true }).click();
+  await expect(confirm).toHaveCount(0);
+  await expect(notebooks.getByRole('button', { name: 'A useful note', exact: true })).toHaveCount(
+    0,
+  );
+  await expect(
+    notebooks.getByRole('button', { name: 'Delete notebook Ideas', exact: true }),
+  ).toHaveCount(0);
+  await expect(notebooks.getByRole('button', { name: 'Welcome', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Settings & tools', exact: true }).click();
+  await page.getByRole('button', { name: 'History & trash', exact: true }).click();
+  const history = page.getByRole('dialog', { name: 'History & trash', exact: true });
+  await expect(history.getByRole('heading', { name: 'Deleted notebooks' })).toBeVisible();
+  await page.screenshot({ path: 'test-results/notebook-trash.png', fullPage: true });
+  await history.getByRole('button', { name: 'Restore notebook Ideas' }).click();
+  await expect(history.getByText('Notebook restored.', { exact: true })).toBeVisible();
+  await history.getByRole('button', { name: 'Close dialog' }).click();
+  await expect(notebooks.getByRole('button', { name: 'A useful note', exact: true })).toBeVisible();
+  await notebooks.getByRole('button', { name: 'A useful note', exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: 'A useful note', exact: true }).first(),
+  ).toBeVisible();
+});
+
 test('compact notebooks and collapsed tools leave room to write at a small window size', async ({
   page,
 }) => {

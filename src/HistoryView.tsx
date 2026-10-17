@@ -2,12 +2,17 @@ import { useEffect, useState } from 'react';
 import { call, native } from './api';
 import { splitContent } from './content';
 import type { Revision } from './types';
+import FolderTrash from './FolderTrash';
 export default function HistoryView({
   item,
   onChanged,
+  onFolderRestored,
+  syncing,
 }: {
   item: string | null;
   onChanged: (item: string) => void;
+  onFolderRestored: () => Promise<void>;
+  syncing: boolean;
 }) {
   const [history, setHistory] = useState<Revision[]>([]);
   const [selected, setSelected] = useState<Revision | null>(null);
@@ -29,6 +34,7 @@ export default function HistoryView({
   }
   return (
     <div className="history-view">
+      <FolderTrash onRestored={onFolderRestored} syncing={syncing} />
       <p className="muted">
         Saved versions and deleted notes are retained. Restoring creates a new version.
       </p>

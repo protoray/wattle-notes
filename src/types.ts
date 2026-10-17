@@ -37,6 +37,11 @@ export interface Revision {
   blob_id: string | null;
   dependencies: string[];
 }
+export interface DeletedFolder {
+  id: string;
+  path: string;
+  deleted_at: number;
+}
 export interface Conflict {
   item_id: string;
   path: string;

@@ -44,6 +44,7 @@ type Dialog =
   | 'rename'
   | 'tags'
   | 'delete'
+  | 'delete-folder'
   | 'settings'
   | 'appearance'
   | 'conflicts'
@@ -68,6 +69,7 @@ export default function App() {
   const [field, setField] = useState('');
   const [message, setMessage] = useState('');
   const [saving, setSaving] = useState(false);
+  const [deletingFolder, setDeletingFolder] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const syncProgress = useSyncProgress(syncing);
   const [saveTick, setSaveTick] = useState(0);
@@ -387,6 +389,8 @@ export default function App() {
     await refreshAccount();
   }
   async function submitDialog() {
+    if (deletingFolder) return;
+    if (dialog === 'delete-folder') setDeletingFolder(true);
     try {
       await saveCurrent();
       if (dialog === 'new-note') {
@@ -428,10 +432,19 @@ export default function App() {
         await call('delete_note', { id: selected.id });
         assign(null);
       }
+      if (dialog === 'delete-folder') {
+        await call('delete_folder', { path: field });
+        if (base.current?.path.startsWith(`${field}/`)) assign(null);
+        if (folder === field || folder.startsWith(`${field}/`)) setFolder(pageNotebook(field));
+        setQuery('');
+        setSearchResults(null);
+      }
       closeDialog();
       await refresh();
     } catch (e) {
       setMessage(String(e));
+    } finally {
+      setDeletingFolder(false);
     }
   }
   async function attachment() {
@@ -639,6 +652,8 @@ export default function App() {
             setFolder(path);
             startDialog('new-note');
           }}
+          onDeleteNotebook={(path) => startDialog('delete-folder', path)}
+          syncing={syncing}
         />
         <SidebarUtilities
           account={account}
@@ -717,7 +732,7 @@ export default function App() {
             </button>
           </div>
         </header>
-        {message && (
+        {message && dialog !== 'delete-folder' && (
           <div className="app-notice" role="status">
             <span>{message}</span>
             <button
@@ -918,6 +933,7 @@ export default function App() {
                 rename: 'Rename page',
                 tags: 'Page tags',
                 delete: 'Delete this page?',
+                'delete-folder': 'Delete this notebook?',
                 settings: 'Your notebook settings',
                 appearance: 'Appearance',
                 conflicts: 'Resolve conflicts',
@@ -925,7 +941,7 @@ export default function App() {
               } as const
             )[dialog]
           }
-          onClose={closeDialog}
+          onClose={deletingFolder ? () => {} : closeDialog}
           wide={['conflicts', 'history'].includes(dialog)}
         >
           {['new-note', 'new-folder', 'rename', 'tags'].includes(dialog) && (
@@ -984,6 +1000,35 @@ export default function App() {
               </div>
             </div>
           )}
+          {dialog === 'delete-folder' && (
+            <div className="dialog-form">
+              <p>
+                Delete “{field}” and all its subnotebooks, pages and files? Links to them from other
+                pages will stop working.
+              </p>
+              <p>
+                You can restore the entire notebook from History &amp; trash on this device. Page
+                and attachment deletions will also sync to your connected devices.
+              </p>
+              {message && (
+                <p className="notice" role="alert">
+                  {message}
+                </p>
+              )}
+              <div className="button-row">
+                <button disabled={deletingFolder} onClick={closeDialog}>
+                  Keep notebook
+                </button>
+                <button
+                  className="danger-button"
+                  disabled={deletingFolder || syncing}
+                  onClick={() => void submitDialog()}
+                >
+                  {deletingFolder ? 'Deleting…' : 'Delete notebook'}
+                </button>
+              </div>
+            </div>
+          )}
           {dialog === 'appearance' && (
             <Appearance theme={theme} onChange={setTheme} onClose={closeDialog} />
           )}
@@ -1031,7 +1076,14 @@ export default function App() {
             </>
           )}
           {dialog === 'conflicts' && <ConflictView onChanged={onResolved} />}{' '}
-          {dialog === 'history' && <HistoryView item={historyItem} onChanged={onResolved} />}
+          {dialog === 'history' && (
+            <HistoryView
+              item={historyItem}
+              onChanged={onResolved}
+              onFolderRestored={refresh}
+              syncing={syncing}
+            />
+          )}
         </Modal>
       )}
       <UpdateProgress updates={updates} />
