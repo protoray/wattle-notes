@@ -2,7 +2,7 @@ use crate::{
     crypto::{self, VaultConfig, VaultKey},
     drive::{Remote, RemoteFile},
     error::fail,
-    model::{ItemKind, Revision, SyncStatus},
+    model::{ItemKind, Revision, SyncProgress, SyncStatus},
     paths,
     vault::{now, Vault},
     Result,
@@ -110,18 +110,31 @@ pub async fn synchronize(
     config: &VaultConfig,
     key: &VaultKey,
 ) -> Result<SyncStatus> {
+    synchronize_with_progress(vault, remote, config, key, &|_| {}).await
+}
+
+pub async fn synchronize_with_progress(
+    vault: &mut Vault,
+    remote: &impl Remote,
+    config: &VaultConfig,
+    key: &VaultKey,
+    report: &(impl Fn(SyncProgress) + Sync),
+) -> Result<SyncStatus> {
     vault.set_state("sync_state", "syncing")?;
     vault.set_state("sync_error", "")?;
-    let outcome = sync_inner(vault, remote, config, key).await;
+    let cached = crate::sync_transport::ListingCache::new(remote);
+    let outcome = sync_inner(vault, &cached, config, key, report).await;
     match outcome {
         Ok(()) => {
             vault.set_state("last_sync", &now().to_string())?;
             vault.set_state(
                 "sync_state",
-                if vault.conflicts()?.is_empty() {
-                    "synced"
-                } else {
+                if !vault.conflicts()?.is_empty() {
                     "conflict"
+                } else if vault.info()?.status.pending > 0 {
+                    "pending"
+                } else {
+                    "synced"
                 },
             )?;
             Ok(vault.info()?.status)
@@ -139,8 +152,11 @@ async fn sync_inner(
     remote: &impl Remote,
     config: &VaultConfig,
     key: &VaultKey,
+    report: &(impl Fn(SyncProgress) + Sync),
 ) -> Result<()> {
+    report(progress("Scanning local notes", 0, 0));
     vault.scan()?;
+    report(progress("Checking Google Drive folders", 0, 0));
     let cursor = match vault.get_state("changes_cursor")? {
         Some(cursor) => cursor,
         None => remote.start_cursor().await?,
@@ -192,7 +208,13 @@ async fn sync_inner(
     let remote_blobs = remote.list(Some(&blobs)).await?;
     let remote_revisions = remote.list(Some(&objects)).await?;
     verify_remote_history(vault, &remote_revisions, &remote_blobs)?;
-    for file in &remote_blobs {
+    report(progress("Downloading attachments", 0, remote_blobs.len()));
+    for (index, file) in remote_blobs.iter().enumerate() {
+        report(progress(
+            "Downloading attachments",
+            index,
+            remote_blobs.len(),
+        ));
         if property(file, "newNotesRole") != "blob"
             || property(file, "newNotesVault") != config.vault_id
         {
@@ -258,7 +280,17 @@ async fn sync_inner(
             params![file.id, blob_id],
         )?;
     }
-    for file in &remote_revisions {
+    report(progress(
+        "Downloading note history",
+        0,
+        remote_revisions.len(),
+    ));
+    for (index, file) in remote_revisions.iter().enumerate() {
+        report(progress(
+            "Downloading note history",
+            index,
+            remote_revisions.len(),
+        ));
         if property(file, "newNotesRole") != "revision"
             || property(file, "newNotesVault") != config.vault_id
         {
@@ -301,6 +333,7 @@ async fn sync_inner(
             params![file.id, id],
         )?;
     }
+    report(progress("Merging note history", 0, 0));
     validate_graph(vault)?;
     reconcile(vault)?;
     // All blob dependencies reach Drive before their referencing revision.
@@ -311,7 +344,10 @@ async fn sync_inner(
         let rows = statement.query_map([], |r| Ok((r.get(0)?, r.get(1)?)))?;
         rows.collect::<std::result::Result<_, _>>()?
     };
-    for (id, local) in pending_blobs {
+    let blob_total = pending_blobs.len();
+    report(progress("Uploading attachments", 0, blob_total));
+    for (index, (id, local)) in pending_blobs.into_iter().enumerate() {
+        report(progress("Uploading attachments", index, blob_total));
         let remote_id = allocated(vault, remote, &format!("upload_blob:{id}")).await?;
         let temp = vault.internal(&format!("transfer/{id}.enc"))?;
         fs::create_dir_all(
@@ -341,10 +377,19 @@ async fn sync_inner(
             "UPDATE blobs SET uploaded=1,drive_id=? WHERE id=?",
             params![remote_id, id],
         )?;
+        report(progress("Uploading attachments", index + 1, blob_total));
     }
     // Topological order permits a new device to verify the complete history after any interruption.
     let all = vault.revisions(None)?;
     let ordered = topological(&all)?;
+    let revision_total: usize =
+        vault
+            .db
+            .query_row("SELECT count(*) FROM revisions WHERE uploaded=0", [], |r| {
+                r.get(0)
+            })?;
+    let mut uploaded_count = 0;
+    report(progress("Uploading note history", 0, revision_total));
     for revision in ordered {
         let uploaded: bool = vault.db.query_row(
             "SELECT uploaded FROM revisions WHERE id=?",
@@ -352,6 +397,27 @@ async fn sync_inner(
             |r| r.get(0),
         )?;
         if uploaded {
+            continue;
+        }
+        // Local editing can add revisions/attachments while a network request is
+        // in flight. Leave these queued if their dependencies missed this pass.
+        let mut ready = true;
+        for blob in revision.dependencies.iter().chain(revision.blob_id.iter()) {
+            ready &= vault
+                .db
+                .query_row("SELECT uploaded FROM blobs WHERE id=?", [blob], |r| {
+                    r.get::<_, bool>(0)
+                })?;
+        }
+        for parent in &revision.parents {
+            ready &=
+                vault
+                    .db
+                    .query_row("SELECT uploaded FROM revisions WHERE id=?", [parent], |r| {
+                        r.get::<_, bool>(0)
+                    })?;
+        }
+        if !ready {
             continue;
         }
         let remote_id =
@@ -386,8 +452,15 @@ async fn sync_inner(
             "UPDATE revisions SET uploaded=1,drive_id=? WHERE id=?",
             params![remote_id, revision.id],
         )?;
+        uploaded_count += 1;
+        report(progress(
+            "Uploading note history",
+            uploaded_count,
+            revision_total,
+        ));
     }
-    refresh_projection(vault, remote, config, key, &root).await?;
+    refresh_projection(vault, remote, config, key, &root, report).await?;
+    report(progress("Finishing sync", 0, 0));
     // Full scan is the recovery baseline; cursor consumption detects removals and records the next incremental starting point.
     let (next, removed) = remote.changes(&cursor).await?;
     let immutable: HashSet<String> = remote_revisions
@@ -400,6 +473,14 @@ async fn sync_inner(
     }
     vault.set_state("changes_cursor", &next)?;
     Ok(())
+}
+
+fn progress(stage: &str, completed: usize, total: usize) -> SyncProgress {
+    SyncProgress {
+        stage: stage.into(),
+        completed,
+        total,
+    }
 }
 
 fn verify_remote_history(
@@ -641,6 +722,7 @@ async fn refresh_projection(
     config: &VaultConfig,
     key: &VaultKey,
     root: &str,
+    report: &(impl Fn(SyncProgress) + Sync),
 ) -> Result<()> {
     let conflicts: HashSet<String> = vault
         .conflicts()?
@@ -649,7 +731,10 @@ async fn refresh_projection(
         .collect();
     let all = vault.revisions(None)?;
     let items: HashSet<String> = all.iter().map(|r| r.item_id.clone()).collect();
-    for item in items {
+    let total = items.len();
+    report(progress("Updating Drive notebook", 0, total));
+    for (index, item) in items.into_iter().enumerate() {
+        report(progress("Updating Drive notebook", index, total));
         if conflicts.contains(&item) {
             continue;
         }
@@ -658,6 +743,14 @@ async fn refresh_projection(
             continue;
         }
         let revision = &heads[0];
+        let uploaded: bool = vault.db.query_row(
+            "SELECT uploaded FROM revisions WHERE id=?",
+            [&revision.id],
+            |r| r.get(0),
+        )?;
+        if !uploaded {
+            continue;
+        }
         let prior: Option<(String, String)> = vault
             .db
             .query_row(
@@ -781,5 +874,6 @@ async fn refresh_projection(
             params![item, id, revision.path],
         )?;
     }
+    report(progress("Updating Drive notebook", total, total));
     Ok(())
 }

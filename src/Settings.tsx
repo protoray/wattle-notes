@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Cloud, ExternalLink, KeyRound, LockKeyhole, ShieldCheck, Upload } from 'lucide-react';
 import { call, native } from './api';
-import type { AccountInfo, RemoteVault, SyncStatus } from './types';
+import type { AccountInfo, RemoteVault, SyncStatus, SyncProgress } from './types';
+import { syncProgressLabel } from './useSyncProgress';
 import { parseDesktopClient } from './oauth-config';
 import NextcloudBackup from './NextcloudBackup';
 export default function Settings({
@@ -10,16 +11,21 @@ export default function Settings({
   onBackup,
   onOpenRestore,
   initialSection = 'google',
+  syncing = false,
+  syncProgress = null,
 }: {
   onChanged: () => void;
   onSync: () => Promise<SyncStatus | undefined>;
   onBackup: () => Promise<string>;
   onOpenRestore: (root: string) => Promise<void>;
   initialSection?: 'google' | 'nextcloud';
+  syncing?: boolean;
+  syncProgress?: SyncProgress | null;
 }) {
   const [provider, setProvider] = useState(initialSection);
   const [backupBusy, setBackupBusy] = useState(false);
   const [account, setAccount] = useState<AccountInfo | null>(null);
+  const [accountError, setAccountError] = useState('');
   const [clientId, setClientId] = useState('');
   const [clientSecret, setClientSecret] = useState('');
   const [passphrase, setPassphrase] = useState('');
@@ -40,10 +46,16 @@ export default function Settings({
   const [message, setMessage] = useState('');
   const showDeveloperSetup = import.meta.env.DEV && account?.bundled_client === false;
   async function reload() {
-    const next = await call<AccountInfo>('account_info');
-    setAccount(next);
-    setClientId(next.settings.client_id);
-    setClientSecret(next.settings.client_secret ?? '');
+    setAccountError('');
+    try {
+      const next = await call<AccountInfo>('account_info');
+      setAccount(next);
+      setClientId(next.settings.client_id);
+      setClientSecret(next.settings.client_secret ?? '');
+    } catch (error) {
+      setAccountError(String(error));
+      throw error;
+    }
   }
   useEffect(() => {
     void reload().catch((e) => setMessage(String(e)));
@@ -186,7 +198,9 @@ export default function Settings({
                 {busy && operation === 'sign-in'
                   ? 'Waiting for Google…'
                   : !account
-                    ? 'Loading Google connection…'
+                    ? accountError
+                      ? 'Google connection unavailable'
+                      : 'Loading Google connection…'
                     : clientId.trim()
                       ? 'Sign in with Google'
                       : showDeveloperSetup
@@ -196,13 +210,25 @@ export default function Settings({
               </button>
               <p className="small muted">
                 {!account
-                  ? 'Loading Google connection settings…'
+                  ? accountError
+                    ? 'Could not load Google connection settings. Try again.'
+                    : 'Loading Google connection settings…'
                   : clientId.trim()
                     ? 'Opens Google in your default browser. Sign in there, then return here.'
                     : showDeveloperSetup
                       ? 'Google sign-in needs a one-time app setup before you can connect your account.'
                       : 'Google sign-in is not configured in this app build. Install the latest official release, or continue with local notes.'}
               </p>
+              {!account && accountError && (
+                <button
+                  onClick={() => {
+                    setMessage('');
+                    void reload().catch((error) => setMessage(String(error)));
+                  }}
+                >
+                  Retry connection settings
+                </button>
+              )}
               {showDeveloperSetup && setupRequested && (
                 <p className="notice" role="status">
                   This alpha has no Google OAuth client configured yet. Follow the setup links
@@ -547,13 +573,32 @@ export default function Settings({
             <span className="setup-number">3</span> Start syncing
           </h3>
           <p>
-            {account?.connected && account.unlocked
-              ? 'Ready. Sync now; future changes sync automatically while connected and unlocked.'
-              : 'Connect Google Drive and unlock encryption to start syncing.'}
+            {syncing
+              ? 'Sync is running. You can keep using your local notes.'
+              : account?.connected && account.unlocked
+                ? 'Ready. Sync now; future changes sync automatically while connected and unlocked.'
+                : 'Connect Google Drive and unlock encryption to start syncing.'}
           </p>
+          {syncing && (
+            <div className="sync-progress" role="status" aria-live="polite">
+              <p>{syncProgressLabel(syncProgress)}</p>
+              <progress
+                aria-label="Google Drive sync progress"
+                max={syncProgress?.total || 1}
+                value={syncProgress?.total ? syncProgress.completed : undefined}
+              />
+            </div>
+          )}
           <button
             className="primary"
-            disabled={!native || busy || !account?.connected || !account.unlocked || !!recoveryKey}
+            disabled={
+              !native ||
+              busy ||
+              syncing ||
+              !account?.connected ||
+              !account.unlocked ||
+              !!recoveryKey
+            }
             onClick={() => {
               setOperation('sync');
               void run(async () => {

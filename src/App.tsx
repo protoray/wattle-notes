@@ -32,6 +32,7 @@ import LiveEditor from './LiveEditor';
 import Settings from './Settings';
 import AppUpdatesPanel, { UpdateProgress } from './AppUpdates';
 import { useAppUpdates } from './useAppUpdates';
+import { useSyncProgress, syncProgressLabel } from './useSyncProgress';
 import ConflictView from './ConflictView';
 import HistoryView from './HistoryView';
 import Appearance from './Appearance';
@@ -68,6 +69,7 @@ export default function App() {
   const [message, setMessage] = useState('');
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const syncProgress = useSyncProgress(syncing);
   const [saveTick, setSaveTick] = useState(0);
   const [account, setAccount] = useState<AccountInfo | null>(null);
   const [theme, setTheme] = useState(readTheme);
@@ -162,10 +164,10 @@ export default function App() {
   }, []);
   const syncNow = useCallback(async () => {
     if (busySync.current) return;
+    busySync.current = true;
     try {
-      await saveCurrent();
-      busySync.current = true;
       setSyncing(true);
+      await saveCurrent();
       const status = await call<SyncStatus>('sync_now');
       setInfo((v) => (v ? { ...v, status } : v));
       await refresh();
@@ -204,7 +206,6 @@ export default function App() {
     if (
       !selectedId ||
       draftRef.current === base.current?.content ||
-      busySync.current ||
       dialog === 'conflicts' ||
       dialog === 'history'
     )
@@ -680,10 +681,15 @@ export default function App() {
             <strong>{selected?.title ?? 'Your notebook'}</strong>
           </div>
           <div className="toolbar-right">
-            <span className={`sync-label ${syncing ? 'syncing' : ''}`}>
+            <span
+              className={`sync-label ${syncing ? 'syncing' : ''}`}
+              title={syncing ? syncProgressLabel(syncProgress) : undefined}
+            >
               <Cloud size={15} />
               {syncing
-                ? 'Syncing…'
+                ? syncProgress?.total
+                  ? `Syncing… ${syncProgress.completed}/${syncProgress.total}`
+                  : 'Syncing…'
                 : native
                   ? account?.connected
                     ? account.unlocked
@@ -994,6 +1000,8 @@ export default function App() {
                 </button>
               </div>
               <Settings
+                syncing={syncing}
+                syncProgress={syncProgress}
                 initialSection={settingsTarget}
                 onChanged={onChanged}
                 onSync={syncNow}

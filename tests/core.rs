@@ -1,18 +1,16 @@
-use async_trait::async_trait;
+use notes_core as core_lib;
+#[path = "support/remote.rs"]
+mod memory_remote;
+use memory_remote::MemoryRemote;
 use notes_core::{
     crypto::{self, VaultConfig, VaultKey},
-    drive::{Remote, RemoteFile},
-    error::fail,
     links,
     model::{ItemKind, Revision},
     paths, sync,
     vault::{with_identity, Vault},
-    Result,
 };
 use std::{
-    collections::HashMap,
     fs,
-    path::Path,
     sync::{Mutex, OnceLock},
 };
 use tempfile::TempDir;
@@ -331,113 +329,66 @@ fn missing_parents_cycles_and_cross_item_parents_are_rejected() {
     assert!(sync::topological(&[one]).is_err());
 }
 
-type StoredFile = (RemoteFile, Option<String>, Vec<u8>);
-#[derive(Default)]
-struct MemoryRemote {
-    files: Mutex<HashMap<String, StoredFile>>,
-    fail_next: Mutex<bool>,
-}
-#[async_trait]
-impl Remote for MemoryRemote {
-    async fn allocate_id(&self) -> Result<String> {
-        Ok(Uuid::new_v4().to_string())
+#[tokio::test]
+async fn attachment_heavy_notebook_sync_lists_each_drive_folder_once_and_reports_progress() {
+    let (dir, mut source) = vault();
+    let (_restored_dir, mut restored) = vault();
+    let remote = MemoryRemote::default();
+    let (config, key, _) = encryption();
+    fs::create_dir_all(dir.path().join("Imported/assets")).unwrap();
+    for index in 0..100 {
+        fs::write(
+            dir.path().join(format!("Imported/Page {index}.md")),
+            format!("# Page {index}\n![photo](assets/photo-{index}.png)"),
+        )
+        .unwrap();
+        fs::write(
+            dir.path()
+                .join(format!("Imported/assets/photo-{index}.png")),
+            [137, 80, 78, 71, index as u8],
+        )
+        .unwrap();
     }
-    async fn list(&self, parent: Option<&str>) -> Result<Vec<RemoteFile>> {
-        let files = self.files.lock().unwrap();
-        Ok(files
-            .values()
-            .filter(|(f, p, _)| {
-                !f.trashed
-                    && match parent {
-                        Some(parent) => p.as_deref() == Some(parent),
-                        None => f
-                            .app_properties
-                            .get("newNotesRole")
-                            .is_some_and(|role| role == "vault"),
-                    }
-            })
-            .map(|(f, _, _)| f.clone())
-            .collect())
-    }
-    async fn create_folder(
-        &self,
-        id: &str,
-        parent: Option<&str>,
-        name: &str,
-        properties: &HashMap<String, String>,
-    ) -> Result<()> {
-        self.files.lock().unwrap().entry(id.into()).or_insert((
-            RemoteFile {
-                id: id.into(),
-                name: name.into(),
-                mime_type: "application/vnd.google-apps.folder".into(),
-                app_properties: properties.clone(),
-                size: None,
-                trashed: false,
-                version: None,
-            },
-            parent.map(String::from),
-            vec![],
-        ));
-        Ok(())
-    }
-    async fn upload(
-        &self,
-        id: &str,
-        parent: &str,
-        name: &str,
-        path: &Path,
-        properties: &HashMap<String, String>,
-        replace: bool,
-    ) -> Result<()> {
-        let bytes = fs::read(path)?;
-        let mut files = self.files.lock().unwrap();
-        if !files.contains_key(id) || replace {
-            files.insert(
-                id.into(),
-                (
-                    RemoteFile {
-                        id: id.into(),
-                        name: name.into(),
-                        mime_type: "application/octet-stream".into(),
-                        app_properties: properties.clone(),
-                        size: Some(bytes.len().to_string()),
-                        trashed: false,
-                        version: Some(notes_core::vault::hash(&bytes)),
-                    },
-                    Some(parent.into()),
-                    bytes,
-                ),
-            );
-        }
-        let mut should_fail = self.fail_next.lock().unwrap();
-        if *should_fail {
-            *should_fail = false;
-            return Err(fail("Simulated uncertain upload delivery"));
-        }
-        Ok(())
-    }
-    async fn download(&self, id: &str, destination: &Path, limit: u64) -> Result<()> {
-        let files = self.files.lock().unwrap();
-        let (_, _, bytes) = files.get(id).ok_or_else(|| fail("Missing remote file"))?;
-        if bytes.len() as u64 > limit {
-            return Err(fail("Too large"));
-        }
-        fs::create_dir_all(destination.parent().unwrap())?;
-        fs::write(destination, bytes)?;
-        Ok(())
-    }
-    async fn start_cursor(&self) -> Result<String> {
-        Ok("cursor".into())
-    }
-    async fn changes(&self, _cursor: &str) -> Result<(String, Vec<String>)> {
-        Ok(("next-cursor".into(), vec![]))
-    }
-    async fn trash(&self, id: &str) -> Result<()> {
-        if let Some((file, _, _)) = self.files.lock().unwrap().get_mut(id) {
-            file.trashed = true;
-        }
-        Ok(())
+    let events = Mutex::new(Vec::new());
+    let report = |progress| events.lock().unwrap().push(progress);
+    let status = sync::synchronize_with_progress(&mut source, &remote, &config, &key, &report)
+        .await
+        .unwrap();
+    assert_eq!(status.pending, 0);
+    let first_lists = remote.list_calls.load(std::sync::atomic::Ordering::SeqCst);
+    assert!(
+        first_lists <= 7,
+        "folder listings must scale with folders, not files: {first_lists}"
+    );
+    let events = events.into_inner().unwrap();
+    assert!(events
+        .iter()
+        .any(|p| p.stage == "Uploading attachments" && p.completed == 100 && p.total == 100));
+    assert!(events
+        .iter()
+        .any(|p| p.stage == "Uploading note history" && p.completed == 200 && p.total == 200));
+    sync::synchronize(&mut source, &remote, &config, &key)
+        .await
+        .unwrap();
+    let second_lists = remote.list_calls.load(std::sync::atomic::Ordering::SeqCst) - first_lists;
+    assert!(
+        second_lists <= 7,
+        "unchanged sync must not relist a folder per note: {second_lists}"
+    );
+    sync::synchronize(&mut restored, &remote, &config, &key)
+        .await
+        .unwrap();
+    assert_eq!(restored.notes().unwrap().len(), 100);
+    for index in 0..100 {
+        assert_eq!(
+            fs::read(
+                restored
+                    .root
+                    .join(format!("Imported/assets/photo-{index}.png"))
+            )
+            .unwrap(),
+            vec![137, 80, 78, 71, index as u8]
+        );
     }
 }
 

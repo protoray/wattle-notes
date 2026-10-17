@@ -14,6 +14,11 @@ export interface SyncStatus {
   last_sync: number | null;
   message: string | null;
 }
+export interface SyncProgress {
+  stage: string;
+  completed: number;
+  total: number;
+}
 export interface VaultInfo {
   root: string;
   name: string;

@@ -23,6 +23,9 @@ use zeroize::Zeroizing;
 struct Inner {
     vault: Mutex<Option<Vault>>,
     key: Mutex<Option<VaultKey>>,
+    operations: Arc<tokio::sync::Mutex<()>>,
+    syncing: std::sync::atomic::AtomicBool,
+    progress: Mutex<Option<SyncProgress>>,
     can_exit: std::sync::atomic::AtomicBool,
 }
 #[derive(Clone, Default)]
@@ -51,7 +54,9 @@ async fn local<T: Send + 'static>(
     work: impl FnOnce(&mut Vault) -> Result<T> + Send + 'static,
 ) -> Command<T> {
     let inner = state.0.clone();
+    let operation = inner.operations.clone().lock_owned().await;
     tauri::async_runtime::spawn_blocking(move || {
+        let _operation = operation;
         let mut guard = inner.vault.lock().map_err(|_| fail("Vault lock failed"))?;
         work(
             guard
@@ -62,6 +67,47 @@ async fn local<T: Send + 'static>(
     .await
     .map_err(|e| e.to_string())?
     .map_err(|e| e.to_string())
+}
+fn require_idle(inner: &Inner) -> Result<()> {
+    if inner.syncing.load(std::sync::atomic::Ordering::SeqCst) {
+        return Err(fail("Wait for Google Drive sync to finish before changing the notebook or its connection/encryption settings."));
+    }
+    Ok(())
+}
+async fn exclusive_local<T: Send + 'static>(
+    state: &AppState,
+    work: impl FnOnce(&mut Vault) -> Result<T> + Send + 'static,
+) -> Command<T> {
+    let inner = state.0.clone();
+    local(state, move |v| {
+        require_idle(&inner)?;
+        work(v)
+    })
+    .await
+}
+
+struct ActiveSync(Arc<Inner>);
+impl ActiveSync {
+    fn begin(inner: Arc<Inner>) -> Result<Self> {
+        inner
+            .syncing
+            .compare_exchange(
+                false,
+                true,
+                std::sync::atomic::Ordering::SeqCst,
+                std::sync::atomic::Ordering::SeqCst,
+            )
+            .map_err(|_| fail("Google Drive sync is already running"))?;
+        Ok(Self(inner))
+    }
+}
+impl Drop for ActiveSync {
+    fn drop(&mut self) {
+        *self.0.progress.lock().unwrap() = None;
+        self.0
+            .syncing
+            .store(false, std::sync::atomic::Ordering::SeqCst);
+    }
 }
 fn config(vault: &Vault) -> Result<Option<VaultConfig>> {
     let path = vault.internal("vault.json")?;
@@ -94,6 +140,7 @@ fn switch_vault(
     root: &Path,
     remember: impl FnOnce(&str) -> Result<()>,
 ) -> Result<VaultInfo> {
+    require_idle(inner)?;
     let mut guard = inner.vault.lock().map_err(|_| fail("Vault lock failed"))?;
     // A missing remembered folder may be on an unmounted disk. Do not silently
     // recreate it as an empty notebook, or release the current notebook on error.
@@ -135,6 +182,7 @@ async fn open_vault(
 ) -> Command<VaultInfo> {
     let inner = state.0.clone();
     tauri::async_runtime::spawn_blocking(move || {
+        let _operation = inner.operations.clone().blocking_lock_owned();
         switch_vault(&inner, Path::new(&root), |root| {
             let folder = app
                 .path()
@@ -369,7 +417,7 @@ async fn configure_encryption(
     remember: bool,
 ) -> Command<String> {
     let inner = state.0.clone();
-    local(&state, move |v| {
+    exclusive_local(&state, move |v| {
         let passphrase = Zeroizing::new(passphrase);
         if config(v)?.is_some() {
             return Err(fail("This vault already has an encryption key"));
@@ -395,7 +443,7 @@ async fn unlock_sync(
     remember: bool,
 ) -> Command<()> {
     let inner = state.0.clone();
-    local(&state, move |v| {
+    exclusive_local(&state, move |v| {
         let secret = Zeroizing::new(secret);
         let config = config(v)?.ok_or_else(|| fail("Set up encryption first"))?;
         let key = crypto::unlock(&config, &secret, recovery)?;
@@ -413,7 +461,7 @@ async fn unlock_sync(
 #[tauri::command]
 async fn lock_sync(state: State<'_, AppState>) -> Command<()> {
     let inner = state.0.clone();
-    local(&state, move |v| {
+    exclusive_local(&state, move |v| {
         *inner
             .key
             .lock()
@@ -439,7 +487,7 @@ async fn save_oauth_settings(
     {
         return Err("Google sign-in is configured by this app build".into());
     }
-    local(&state, move |v| {
+    exclusive_local(&state, move |v| {
         v.set_state(
             "oauth_settings",
             &serde_json::to_string(&OAuthSettings {
@@ -452,7 +500,7 @@ async fn save_oauth_settings(
 }
 #[tauri::command]
 async fn connect_drive(state: State<'_, AppState>) -> Command<()> {
-    let settings = local(&state, |v| settings(v)).await?;
+    let settings = exclusive_local(&state, |v| settings(v)).await?;
     let tokens = oauth::authorize(&settings)
         .await
         .map_err(|e| e.to_string())?;
@@ -464,12 +512,15 @@ async fn connect_drive(state: State<'_, AppState>) -> Command<()> {
 }
 #[tauri::command]
 async fn disconnect_drive(state: State<'_, AppState>) -> Command<()> {
-    oauth::forget_secret("google-refresh-token").map_err(|e| e.to_string())?;
-    local(&state, |v| v.set_state("sync_state", "local")).await
+    exclusive_local(&state, |v| {
+        oauth::forget_secret("google-refresh-token")?;
+        v.set_state("sync_state", "local")
+    })
+    .await
 }
 #[tauri::command]
 async fn discover_vaults(state: State<'_, AppState>) -> Command<Vec<RemoteFile>> {
-    let settings = local(&state, |v| settings(v)).await?;
+    let settings = exclusive_local(&state, |v| settings(v)).await?;
     let client = client(&settings).await.map_err(|e| e.to_string())?;
     sync::discover(&client).await.map_err(|e| e.to_string())
 }
@@ -481,10 +532,12 @@ async fn join_remote_vault(
     recovery: bool,
     remember: bool,
 ) -> Command<()> {
-    let settings = local(&state, |v| settings(v)).await?;
+    let settings = exclusive_local(&state, |v| settings(v)).await?;
     let client = client(&settings).await.map_err(|e| e.to_string())?;
     let inner = state.0.clone();
     tauri::async_runtime::spawn_blocking(move || {
+        let _operation = inner.operations.clone().blocking_lock_owned();
+        require_idle(&inner)?;
         let mut guard = inner.vault.lock().map_err(|_| fail("Vault lock failed"))?;
         let v = guard
             .as_mut()
@@ -519,30 +572,59 @@ async fn join_remote_vault(
 #[tauri::command]
 async fn sync_now(state: State<'_, AppState>) -> Command<SyncStatus> {
     let inner = state.0.clone();
+    let running = ActiveSync::begin(inner.clone()).map_err(|e| e.to_string())?;
     tauri::async_runtime::spawn_blocking(move || {
-        let mut guard = inner.vault.lock().map_err(|_| fail("Vault lock failed"))?;
-        let v = guard
-            .as_mut()
-            .ok_or_else(|| fail("Open a local vault first"))?;
-        let config = config(v)?.ok_or_else(|| fail("Set up sync encryption in Settings first"))?;
-        let key = inner
-            .key
-            .lock()
-            .map_err(|_| fail("Encryption lock failed"))?
-            .clone()
-            .ok_or_else(|| fail("Unlock sync in Settings first"))?;
-        let settings = settings(v)?;
+        let _running = running;
+        let (root, config, key, settings) = {
+            let _operation = inner.operations.clone().blocking_lock_owned();
+            let guard = inner.vault.lock().map_err(|_| fail("Vault lock failed"))?;
+            let v = guard
+                .as_ref()
+                .ok_or_else(|| fail("Open a local vault first"))?;
+            let config =
+                config(v)?.ok_or_else(|| fail("Set up sync encryption in Settings first"))?;
+            let key = inner
+                .key
+                .lock()
+                .map_err(|_| fail("Encryption lock failed"))?
+                .clone()
+                .ok_or_else(|| fail("Unlock sync in Settings first"))?;
+            (v.root.clone(), config, key, settings(v)?)
+        };
+        *inner.progress.lock().unwrap() = Some(SyncProgress {
+            stage: "Connecting to Google Drive".into(),
+            completed: 0,
+            total: 0,
+        });
         let runtime = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()?;
         runtime.block_on(async {
             let client = client(&settings).await?;
-            sync::synchronize(v, &client, &config, &key).await
+            let remote =
+                crate::sync_transport::BackgroundRemote::new(client, inner.operations.clone())
+                    .await;
+            // The primary handle retains the process file lock. Both connections use
+            // the same operation gate for local work, released only during network I/O.
+            let mut worker = Vault::connect(&root)?;
+            sync::synchronize_with_progress(&mut worker, &remote, &config, &key, &|progress| {
+                *inner.progress.lock().unwrap() = Some(progress);
+            })
+            .await
         })
     })
     .await
     .map_err(|e| e.to_string())?
     .map_err(|e| e.to_string())
+}
+#[tauri::command]
+fn sync_progress(state: State<'_, AppState>) -> Command<Option<SyncProgress>> {
+    Ok(state
+        .0
+        .progress
+        .lock()
+        .map_err(|_| "Sync progress lock failed")?
+        .clone())
 }
 #[derive(Serialize)]
 struct WebDavInfo {
@@ -757,6 +839,7 @@ pub fn run() {
             discover_vaults,
             join_remote_vault,
             sync_now,
+            sync_progress,
             finish_exit,
             restart_after_update,
             open_external
@@ -787,6 +870,217 @@ pub fn run() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate as core_lib;
+    use crate::drive::Remote;
+    use async_trait::async_trait;
+    use std::collections::HashMap;
+    mod memory_remote {
+        include!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../tests/support/remote.rs"
+        ));
+    }
+
+    struct PausedRemote {
+        started: Arc<tokio::sync::Notify>,
+        resume: Arc<tokio::sync::Notify>,
+    }
+    #[async_trait]
+    impl Remote for PausedRemote {
+        async fn allocate_id(&self) -> Result<String> {
+            unreachable!()
+        }
+        async fn list(&self, _: Option<&str>) -> Result<Vec<RemoteFile>> {
+            self.started.notify_one();
+            self.resume.notified().await;
+            Err(fail("Synthetic network failure"))
+        }
+        async fn create_folder(
+            &self,
+            _: &str,
+            _: Option<&str>,
+            _: &str,
+            _: &HashMap<String, String>,
+        ) -> Result<()> {
+            unreachable!()
+        }
+        async fn upload(
+            &self,
+            _: &str,
+            _: &str,
+            _: &str,
+            _: &Path,
+            _: &HashMap<String, String>,
+            _: bool,
+        ) -> Result<()> {
+            unreachable!()
+        }
+        async fn download(&self, _: &str, _: &Path, _: u64) -> Result<()> {
+            unreachable!()
+        }
+        async fn start_cursor(&self) -> Result<String> {
+            unreachable!()
+        }
+        async fn changes(&self, _: &str) -> Result<(String, Vec<String>)> {
+            unreachable!()
+        }
+        async fn trash(&self, _: &str) -> Result<()> {
+            unreachable!()
+        }
+    }
+
+    #[tokio::test]
+    async fn slow_drive_requests_do_not_block_local_images_or_saves_and_relock_on_failure() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let inner = Arc::new(session(dir.path()));
+        let state = AppState(inner.clone());
+        let running = ActiveSync::begin(inner.clone()).unwrap();
+        let root = dir.path().join("current");
+        fs::create_dir(root.join("assets")).unwrap();
+        let bytes = base64::Engine::decode(&base64::engine::general_purpose::STANDARD,
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jWZkAAAAASUVORK5CYII=").unwrap();
+        fs::write(root.join("assets/photo.png"), &bytes).unwrap();
+        let started = Arc::new(tokio::sync::Notify::new());
+        let resume = Arc::new(tokio::sync::Notify::new());
+        let remote = crate::sync_transport::BackgroundRemote::new(
+            PausedRemote {
+                started: started.clone(),
+                resume: resume.clone(),
+            },
+            inner.operations.clone(),
+        )
+        .await;
+        let request = tokio::spawn(async move {
+            let result = remote.list(None).await;
+            (remote, result)
+        });
+        started.notified().await;
+        let read_and_saved = tokio::time::timeout(
+            std::time::Duration::from_secs(2),
+            local(&state, |v| {
+                let note = v.notes()?.remove(0);
+                let image = crate::images::read(&v.root, &note.path, "assets/photo.png")?;
+                v.save_note(&note.id, "Saved while Drive is waiting", &note.hash)?;
+                Ok((image.bytes, config(v)?.is_some()))
+            }),
+        )
+        .await
+        .expect("local reads/saves must finish before the remote request resumes")
+        .unwrap();
+        assert_eq!(read_and_saved, (bytes, false));
+        assert!(
+            Vault::open(&root).is_err(),
+            "primary handle must retain the process lock"
+        );
+        assert!(switch_vault(&inner, &dir.path().join("next"), |_| Ok(())).is_err());
+        resume.notify_one();
+        let (remote, result) = request.await.unwrap();
+        assert!(result.is_err());
+        assert!(
+            inner.operations.try_lock().is_err(),
+            "error handling must hold the local gate again"
+        );
+        drop(remote);
+        assert!(inner.operations.try_lock().is_ok());
+        drop(running);
+        assert!(require_idle(&inner).is_ok());
+    }
+
+    #[test]
+    fn duplicate_sync_is_rejected_and_guard_always_clears_progress() {
+        let inner = Arc::new(Inner::default());
+        let running = ActiveSync::begin(inner.clone()).unwrap();
+        assert!(ActiveSync::begin(inner.clone()).is_err());
+        *inner.progress.lock().unwrap() = Some(SyncProgress {
+            stage: "Uploading attachments".into(),
+            completed: 2,
+            total: 100,
+        });
+        drop(running);
+        assert!(inner.progress.lock().unwrap().is_none());
+        assert!(require_idle(&inner).is_ok());
+    }
+
+    #[tokio::test]
+    async fn edits_and_new_attachments_during_upload_remain_pending_until_dependencies_are_uploaded(
+    ) {
+        let dir = tempfile::TempDir::new().unwrap();
+        let mut primary = Vault::open(dir.path()).unwrap();
+        let note = primary.create_note("Page.md").unwrap();
+        fs::write(dir.path().join("first.png"), b"first attachment").unwrap();
+        primary.scan().unwrap();
+        let mut worker = Vault::connect(dir.path()).unwrap();
+        let (config, key, _) = crypto::create_vault("synthetic sync test passphrase").unwrap();
+        let remote = memory_remote::MemoryRemote::default();
+        let edited = std::sync::atomic::AtomicBool::new(false);
+        let primary = Mutex::new(primary);
+        let callback = |p: SyncProgress| {
+            if p.stage == "Uploading attachments"
+                && p.completed == 1
+                && !edited.swap(true, std::sync::atomic::Ordering::SeqCst)
+            {
+                // Simulate a local operation completing while the network gate is
+                // yielded. Add a new blob after this pass's blob list was captured.
+                let mut primary = primary.lock().unwrap();
+                fs::write(primary.root.join("late.png"), b"new attachment").unwrap();
+                primary.scan().unwrap();
+                let latest = primary.note(&note.id).unwrap();
+                primary
+                    .save_note(
+                        &note.id,
+                        "Saved during sync\n![new](late.png)",
+                        &latest.hash,
+                    )
+                    .unwrap();
+            }
+        };
+        let status =
+            sync::synchronize_with_progress(&mut worker, &remote, &config, &key, &callback)
+                .await
+                .unwrap();
+        assert!(edited.load(std::sync::atomic::Ordering::SeqCst));
+        assert!(status.pending > 0);
+        assert_eq!(status.state, "pending");
+        let primary = primary.into_inner().unwrap();
+        let latest = primary.heads(&note.id).unwrap().remove(0);
+        let uploaded: bool = primary
+            .db
+            .query_row(
+                "SELECT uploaded FROM revisions WHERE id=?",
+                [&latest.id],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert!(
+            !uploaded,
+            "a new note revision must wait for its new attachment blob"
+        );
+        let restored_dir = tempfile::TempDir::new().unwrap();
+        let mut restored = Vault::open(restored_dir.path()).unwrap();
+        sync::synchronize(&mut restored, &remote, &config, &key)
+            .await
+            .unwrap();
+        assert!(
+            !restored.root.join("late.png").exists(),
+            "incomplete attachment history must never be published"
+        );
+        let status = sync::synchronize(&mut worker, &remote, &config, &key)
+            .await
+            .unwrap();
+        assert_eq!(status.pending, 0);
+        sync::synchronize(&mut restored, &remote, &config, &key)
+            .await
+            .unwrap();
+        assert!(restored
+            .note(&note.id)
+            .unwrap()
+            .content
+            .contains("Saved during sync"));
+        assert_eq!(
+            fs::read(restored.root.join("late.png")).unwrap(),
+            b"new attachment"
+        );
+    }
 
     fn session(parent: &Path) -> Inner {
         let mut vault = Vault::open(parent.join("current")).unwrap();

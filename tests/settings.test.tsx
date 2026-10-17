@@ -56,6 +56,40 @@ describe('Desktop client import', () => {
 });
 
 describe('Drive setup', () => {
+  it('shows background sync stage/counts and prevents a duplicate manual sync', async () => {
+    fixture.account!.connected = true;
+    fixture.account!.unlocked = true;
+    const sync = vi.fn();
+    render(
+      <Settings
+        onBackup={vi.fn()}
+        onOpenRestore={vi.fn()}
+        onChanged={vi.fn()}
+        onSync={sync}
+        syncing
+        syncProgress={{ stage: 'Uploading attachments', completed: 3, total: 100 }}
+      />,
+    );
+    await screen.findByText('Uploading attachments: 3 of 100');
+    const bar = screen.getByRole('progressbar', { name: 'Google Drive sync progress' });
+    expect(bar.getAttribute('max')).toBe('100');
+    expect(bar.getAttribute('value')).toBe('3');
+    const button = screen.getByRole('button', { name: 'Sync now' });
+    expect((button as HTMLButtonElement).disabled).toBe(true);
+    await userEvent.setup().click(button);
+    expect(sync).not.toHaveBeenCalled();
+  });
+  it('offers a retry instead of remaining on Loading after connection settings fail', async () => {
+    fixture.call.mockRejectedValueOnce(new Error('Temporary settings failure'));
+    render(
+      <Settings onBackup={vi.fn()} onOpenRestore={vi.fn()} onChanged={vi.fn()} onSync={vi.fn()} />,
+    );
+    await screen.findByRole('button', { name: 'Google connection unavailable' });
+    await userEvent
+      .setup()
+      .click(screen.getByRole('button', { name: 'Retry connection settings' }));
+    await screen.findByRole('button', { name: 'Sign in with Google' });
+  });
   it('keeps developer client setup out of production even with notebook client settings', async () => {
     vi.stubEnv('DEV', false);
     render(

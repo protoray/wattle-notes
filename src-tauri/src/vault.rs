@@ -81,6 +81,29 @@ fn tags(content: &str) -> Result<Vec<String>> {
     Ok(result)
 }
 
+fn note_record(
+    id: String,
+    path: String,
+    content: String,
+    hash: String,
+    modified: u64,
+) -> Result<Note> {
+    let title = Path::new(&path)
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("Untitled")
+        .to_string();
+    Ok(Note {
+        id,
+        path,
+        title,
+        tags: tags(&content)?,
+        content,
+        hash,
+        modified,
+    })
+}
+
 impl Vault {
     pub fn open(root: impl AsRef<Path>) -> Result<Self> {
         fs::create_dir_all(root.as_ref())?;
@@ -176,28 +199,26 @@ impl Vault {
         let mut notes = Vec::new();
         for row in rows {
             let (id, path, content, hash, modified) = row?;
-            let title = Path::new(&path)
-                .file_stem()
-                .and_then(|s| s.to_str())
-                .unwrap_or("Untitled")
-                .to_string();
-            notes.push(Note {
-                id,
-                path,
-                title,
-                tags: tags(&content)?,
-                content,
-                hash,
-                modified,
-            });
+            notes.push(note_record(id, path, content, hash, modified)?);
         }
         Ok(notes)
     }
     pub fn note(&self, id: &str) -> Result<Note> {
-        self.notes()?
-            .into_iter()
-            .find(|n| n.id == id)
-            .ok_or_else(|| fail("Note not found"))
+        let row = rusqlite::OptionalExtension::optional(self.db.query_row(
+            "SELECT id,path,content,hash,modified FROM notes WHERE id=?",
+            [id],
+            |r| {
+                Ok((
+                    r.get::<_, String>(0)?,
+                    r.get::<_, String>(1)?,
+                    r.get::<_, String>(2)?,
+                    r.get::<_, String>(3)?,
+                    r.get::<_, u64>(4)?,
+                ))
+            },
+        ))?
+        .ok_or_else(|| fail("Note not found"))?;
+        note_record(row.0, row.1, row.2, row.3, row.4)
     }
     pub fn search(&self, query: &str) -> Result<Vec<Note>> {
         if query.trim().is_empty() {
@@ -580,6 +601,8 @@ impl Vault {
     }
     pub fn scan(&mut self) -> Result<()> {
         let before = self.notes()?;
+        let by_path: HashMap<&str, &Note> = before.iter().map(|n| (n.path.as_str(), n)).collect();
+        let by_id: HashMap<&str, &Note> = before.iter().map(|n| (n.id.as_str(), n)).collect();
         let mut seen = HashSet::new();
         let mut names = HashSet::new();
         let mut attachment_paths = HashSet::new();
@@ -610,7 +633,7 @@ impl Vault {
                     return Err(fail(format!("{path} exceeds the 10 MiB note limit")));
                 }
                 let raw = fs::read_to_string(entry.path())?;
-                let previous = before.iter().find(|n| n.path == path);
+                let previous = by_path.get(path.as_str()).copied();
                 let id = note_id(&raw)?
                     .or_else(|| previous.map(|n| n.id.clone()))
                     .unwrap_or_else(|| Uuid::new_v4().to_string());
@@ -620,7 +643,7 @@ impl Vault {
                     ));
                 }
                 let content = with_identity(&raw, &id)?;
-                let previous = before.iter().find(|n| n.id == id);
+                let previous = by_id.get(id.as_str()).copied();
                 if previous.is_none_or(|n| n.content != content || n.path != path) {
                     let parents = self.heads(&id)?.iter().map(|r| r.id.clone()).collect();
                     let revision =

@@ -58,6 +58,13 @@ pub struct SyncStatus {
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct SyncProgress {
+    pub stage: String,
+    pub completed: usize,
+    pub total: usize,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct VaultInfo {
     pub root: String,
     pub name: String,

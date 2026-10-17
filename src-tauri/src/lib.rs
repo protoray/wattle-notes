@@ -10,6 +10,7 @@ pub mod model;
 pub mod oauth;
 pub mod paths;
 pub mod sync;
+pub mod sync_transport;
 pub mod vault;
 pub mod webdav;
 
