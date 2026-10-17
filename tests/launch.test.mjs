@@ -8,6 +8,14 @@ test('public source snapshots exclude handoff, local preferences, credentials, n
     'AGENTS.md',
     'docs/CURRENT_STATE.md',
     'website/dist/downloads/app.zip',
+    'website/launch.json',
+    'website/index.html',
+    'website/assets/app-dark.png',
+    'playwright.capture.config.ts',
+    'playwright.site.config.ts',
+    'tests/capture',
+    'tests/capture/website.spec.ts',
+    'tests/website/launch.spec.ts',
     '.env',
     '.env.production',
     'src/../private.txt',
@@ -25,7 +33,6 @@ test('public source snapshots exclude handoff, local preferences, credentials, n
     'src-tauri/Cargo.lock',
     '.github/workflows/ci.yml',
     '.gitignore',
-    'website/launch.json',
   ])
     assert.equal(publicSourcePath(path), true, path);
 });

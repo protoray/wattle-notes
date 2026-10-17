@@ -12,6 +12,11 @@ playwright-report/
 *.tsbuildinfo
 src-tauri/gen/
 website/dist/
+/website/
+/playwright.capture.config.ts
+/playwright.site.config.ts
+/tests/capture/
+/tests/website/
 release/
 __pycache__/
 *.pyc

@@ -11,7 +11,7 @@
     "dev": "vite --host 127.0.0.1",
     "build": "tsc -b && vite build",
     "lint": "eslint . && tsc -b",
-    "format": "prettier --write src tests scripts website *.json *.ts *.js docs README.md CONTRIBUTING.md",
+    "format": "prettier --write src tests scripts *.json *.ts *.js docs README.md CONTRIBUTING.md",
     "test": "vitest run && node --test tests/release.test.mjs tests/launch.test.mjs tests/updates.test.mjs",
     "test:core": "cargo test --manifest-path src-tauri/Cargo.toml --no-default-features --locked",
     "test:desktop": "cargo test --manifest-path src-tauri/Cargo.toml --lib --locked",
@@ -24,8 +24,6 @@
     "launch:prepare": "node scripts/prepare-launch.mjs",
     "launch:verify": "python3 scripts/verify-launch.py",
     "test:launch": "python3 -B -m unittest discover -s tests -p test_launch_verifier.py",
-    "screenshots:site": "playwright test --config playwright.capture.config.ts",
-    "test:site": "playwright test --config playwright.site.config.ts",
     "test:e2e": "playwright test",
     "notices": "node scripts/generate-notices.mjs",
     "updates:build": "node scripts/prepare-update.mjs"

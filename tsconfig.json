@@ -13,5 +13,6 @@
     "esModuleInterop": true,
     "types": ["vite/client", "vitest/globals"]
   },
-  "include": ["src", "tests", "vite.config.ts", "playwright.config.ts"]
+  "include": ["src", "tests", "vite.config.ts", "playwright.config.ts"],
+  "exclude": ["tests/capture", "tests/website"]
 }

@@ -1,12 +1,17 @@
 import io
+import hashlib
+import json
 import pathlib
+import plistlib
 import runpy
 import stat
+import tempfile
 import unittest
 import warnings
 import zipfile
 
-check_archive = runpy.run_path(str(pathlib.Path(__file__).resolve().parents[1] / "scripts/verify-launch.py"))["check_archive"]
+verifier = runpy.run_path(str(pathlib.Path(__file__).resolve().parents[1] / "scripts/verify-launch.py"))
+check_archive = verifier["check_archive"]
 
 
 class LaunchArchiveTests(unittest.TestCase):
@@ -42,6 +47,50 @@ class LaunchArchiveTests(unittest.TestCase):
         with self.archive([(link, b"../../outside")]) as archive:
             with self.assertRaises(ValueError):
                 check_archive(archive)
+
+    def prepare_release(self, root, extra_source=None):
+        downloads = root / "release/github"
+        downloads.mkdir(parents=True)
+        version = "9.8.7"
+        with zipfile.ZipFile(downloads / "wattle-notes-macos-arm64.zip", "w") as archive:
+            prefix = "Wattle Notes.app/Contents/"
+            archive.writestr(prefix + "Info.plist", plistlib.dumps({"CFBundleShortVersionString": version}))
+            archive.writestr(prefix + "MacOS/wattle-notes", bytes.fromhex("cffaedfe0c000001") + b"synthetic binary")
+            for name in ["LICENSE", "THIRD_PARTY_NOTICES.md"]:
+                archive.writestr(prefix + "Resources/" + name, b"synthetic notice")
+        sources = {name: b"synthetic source" for name in ["LICENSE", "THIRD_PARTY_NOTICES.md", "README.md", "package-lock.json", "src-tauri/Cargo.lock"]}
+        sources.update(extra_source or {})
+        with zipfile.ZipFile(downloads / "wattle-notes-source.zip", "w") as archive:
+            prefix = f"wattle-notes-{version}-source/"
+            manifest = []
+            for name, data in sources.items():
+                archive.writestr(prefix + name, data)
+                manifest.append(f"{hashlib.sha256(data).hexdigest()}  {name}")
+            archive.writestr(prefix + "SOURCE-SHA256SUMS.txt", "\n".join(manifest) + "\n")
+        release = {"version": version}
+        sums = []
+        for key, name in [("mac", "wattle-notes-macos-arm64.zip"), ("source", "wattle-notes-source.zip")]:
+            data = (downloads / name).read_bytes()
+            checksum = hashlib.sha256(data).hexdigest()
+            release[key] = {"name": name, "size": len(data), "sha256": checksum}
+            sums.append(f"{checksum}  {name}")
+        (downloads / "release.json").write_text(json.dumps(release))
+        (downloads / "SHA256SUMS.txt").write_text("\n".join(sums) + "\n")
+
+    def test_app_release_verifies_without_a_website_directory(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = pathlib.Path(folder)
+            self.prepare_release(root)
+            verifier["verify"](root)
+            self.assertFalse((root / "website").exists())
+
+    def test_valid_checksums_do_not_allow_private_website_files_in_source(self):
+        for name in ["website/index.html", "website/launch.json", "playwright.site.config.ts", "playwright.capture.config.ts", "tests/website/launch.spec.ts", "tests/capture/website.spec.ts", "AGENTS.md", "docs/CURRENT_STATE.md"]:
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as folder:
+                root = pathlib.Path(folder)
+                self.prepare_release(root, {name: b"private fixture"})
+                with self.assertRaisesRegex(ValueError, "Private, website or generated"):
+                    verifier["verify"](root)
 
 
 if __name__ == "__main__":

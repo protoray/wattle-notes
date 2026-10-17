@@ -93,9 +93,9 @@ See [encrypted format](docs/encrypted-format.md), [architecture](docs/architectu
 
 ## Website and alpha downloads
 
-The static launch website includes screenshot theme previews, privacy information, [Terms of Service](https://wattlenotes.app/terms-of-service/), getting-started guidance, and links to the GitHub source repository and Releases page. App/source ZIPs and checksums are prepared separately in `release/github/` for manual GitHub release upload. The website bundle excludes download archives and the interactive notebook preview. Links are configured in `website/launch.json`. Preparing or pushing source files does not publish a release or update the WordPress website automatically.
+The [project website](https://wattlenotes.app/), including its [Terms of Service](https://wattlenotes.app/terms-of-service/), is maintained separately. Website implementation files, screenshots and website-only tooling are excluded from this repository and future app source archives. App packaging does not require or modify the website.
 
-Run `npm run screenshots:site`, `npm run launch:prepare`, `npm run launch:verify -- --against-workspace`, then `npm run test:site` after building the Mac app. The deployable directory is `website/dist/`. See [the launch guide](docs/launch.md) for prerequisites, verification and remaining public-release gates.
+After building the Mac app, run `npm run launch:prepare` and `npm run launch:verify -- --against-workspace` to prepare and verify app/source ZIPs, checksums and release metadata under `release/github/`. Preparing or pushing source files does not publish a release or deploy the live site. See [the release packaging guide](docs/launch.md) for configuration and publication steps.
 
 ## Support the project
 

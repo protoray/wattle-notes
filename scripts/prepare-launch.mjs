@@ -29,7 +29,6 @@ const sourceRoots = [
   'docs',
   'assets',
   '.github/workflows',
-  'website',
   'updates',
 ];
 const sourceFiles = [
@@ -44,8 +43,6 @@ const sourceFiles = [
   'tsconfig.json',
   'eslint.config.js',
   'playwright.config.ts',
-  'playwright.capture.config.ts',
-  'playwright.site.config.ts',
   '.gitignore',
   '.prettierrc.json',
   '.prettierignore',
@@ -76,10 +73,15 @@ export function publicSourcePath(path) {
           '.DS_Store',
           'AGENTS.md',
           'CURRENT_STATE.md',
+          'website',
+          'playwright.capture.config.ts',
+          'playwright.site.config.ts',
         ].includes(part) ||
         part.startsWith('.env') ||
         /\.(pem|key|p12|pfx|log|db|db-shm|db-wal|pyc|pyo|local\.json)$/i.test(part),
-    ) && path !== 'docs/HANDOFF.md'
+    ) &&
+    !(parts[0] === 'tests' && ['capture', 'website'].includes(parts[1])) &&
+    path !== 'docs/HANDOFF.md'
   );
 }
 export function publicLink(value, name) {
@@ -137,14 +139,20 @@ export function googleBuildConfigured(binary, environment = process.env) {
 export async function prepareLaunch(environment = process.env) {
   if (process.platform !== 'darwin')
     throw new Error(
-      'This launch kit currently packages the verified Apple Silicon macOS build. Run on macOS with a matching native build.',
+      'This release packager currently packages the verified Apple Silicon macOS build. Run on macOS with a matching native build.',
     );
   const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
   const tauri = JSON.parse(await readFile(join(root, 'src-tauri/tauri.conf.json'), 'utf8'));
   const cargo = await readFile(join(root, 'src-tauri/Cargo.toml'), 'utf8');
   if (pkg.version !== tauri.version || !cargo.includes(`version = "${pkg.version}"`))
     throw new Error('Align the npm, Tauri and Cargo application versions before packaging.');
-  const config = JSON.parse(await readFile(join(root, 'website/launch.json'), 'utf8'));
+  const config = {
+    homepage: 'https://wattlenotes.app/',
+    repositoryUrl: 'https://github.com/protoray/wattle-notes',
+    releasesUrl: 'https://github.com/protoray/wattle-notes/releases',
+    feedbackUrl: null,
+    supportUrl: 'https://buymeacoffee.com/wattlenotes.app',
+  };
   const links = Object.fromEntries(
     ['homepage', 'repositoryUrl', 'releasesUrl', 'feedbackUrl', 'supportUrl'].map((key) => [
       key,
@@ -160,7 +168,7 @@ export async function prepareLaunch(environment = process.env) {
   const googlePreconfigured = googleBuildConfigured(header, environment);
   if (header.readUInt32LE(0) !== 0xfeedfacf || header.readUInt32LE(4) !== 0x0100000c)
     throw new Error(
-      'The current website download is labelled Apple Silicon; provide a matching ARM64 macOS build.',
+      'The current app download is labelled Apple Silicon; provide a matching ARM64 macOS build.',
     );
   const appInputs = [
     'src',
@@ -182,32 +190,11 @@ export async function prepareLaunch(environment = process.env) {
         throw new Error(`Rebuild the app before packaging; it is older than ${path}`);
     }
   }
-  for (const id of ['light', 'dark', 'midnight', 'sepia', 'forest'])
-    await stat(join(root, `website/assets/app-${id}.png`)).catch(() => {
-      throw new Error('Capture the product screenshots first: npm run screenshots:site');
-    });
-
-  const destination = join(root, 'website/dist');
-  const releaseDirectory = join(root, 'release');
-  const githubAssets = join(releaseDirectory, 'github');
-  await rm(destination, { recursive: true, force: true });
-  await mkdir(destination, { recursive: true });
+  const githubAssets = join(root, 'release/github');
   await mkdir(githubAssets, { recursive: true });
   for (const name of ['wattle-notes-source.zip', 'wattle-notes-macos-arm64.zip'])
     await rm(join(githubAssets, name), { force: true });
-  for (const item of [
-    'index.html',
-    'styles.css',
-    'site.js',
-    'icon.svg',
-    'assets',
-    'privacy',
-    'terms-of-service',
-    'getting-started',
-  ])
-    await cp(join(root, 'website', item), join(destination, item), { recursive: true });
-  // The public launch kit deliberately excludes the interactive app preview.
-  // Host-agnostic static output, with no note data, local handoff, credentials or build caches.
+  // Package only app source; the independently maintained website is local-only.
   const snapshot = await mkdtemp(join(tmpdir(), 'wattle-launch-source-'));
   try {
     const folder = `wattle-notes-${pkg.version}-source`;
@@ -258,20 +245,13 @@ export async function prepareLaunch(environment = process.env) {
       mac: downloads[0],
       source: downloads[1],
     };
-    await writeFile(join(destination, 'release.json'), `${JSON.stringify(release, null, 2)}\n`);
+    await writeFile(join(githubAssets, 'release.json'), `${JSON.stringify(release, null, 2)}\n`);
     await writeFile(
       join(githubAssets, 'ALPHA-README.txt'),
       `Wattle Notes ${pkg.version} — developer alpha\n\nMostly vibe coded with AI assistance.\nmacOS Apple Silicon only. Unsigned by Apple; not notarized.\nLocal notes work without an account. ${googlePreconfigured ? 'Google sign-in is configured; users do not need to create an OAuth client.' : 'Google sign-in is not preconfigured.'}\nCloud conflict recovery and optional Nextcloud backup still require live service acceptance testing.\nKeep independent backups and start with a test notebook.\n\nMatching source is in wattle-notes-source.zip, licensed GPL-3.0-or-later.\nSOURCE-SHA256SUMS.txt records its public source snapshot.\nSHA256SUMS.txt records both download archives.\n\nRepository: ${links.repositoryUrl}\nPublish these files as assets of a GitHub pre-release. Preparing them does not upload, tag or publish anything.\nDo not imply this is an Apple-signed or notarized release.\n\nSee the getting-started, privacy and terms pages at ${links.homepage}\n`,
     );
-    const kit = join(releaseDirectory, 'wattle-notes-launch-kit.zip');
-    await rm(kit, { force: true });
-    run('/usr/bin/ditto', ['-c', '-k', '--norsrc', destination, kit]);
-    await writeFile(
-      join(releaseDirectory, 'SHA256SUMS.txt'),
-      `${await sha256(kit)}  wattle-notes-launch-kit.zip\n`,
-    );
     console.log(
-      `Static website: ${relative(root, destination)}\nWebsite upload archive: release/wattle-notes-launch-kit.zip\nGitHub release assets: release/github/\nVersion ${pkg.version}; ${manifest.length} public source files; app and source checksums verified separately from the website.`,
+      `GitHub release assets: ${relative(root, githubAssets)}/\nVersion ${pkg.version}; ${manifest.length} public app source files; app/source checksums verified. Website files were not read, changed or packaged.`,
     );
     return release;
   } finally {

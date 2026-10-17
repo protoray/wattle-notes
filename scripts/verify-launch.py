@@ -1,4 +1,4 @@
-"""Verify a locally prepared launch kit without extracting executable files."""
+"""Verify app/source release assets without extracting executable files."""
 
 import argparse
 import hashlib
@@ -30,12 +30,20 @@ def check_archive(archive):
         raise ValueError(f"Archive CRC failed: {bad}")
 
 
+def check_source_path(name):
+    path = pathlib.PurePosixPath(name)
+    if path.is_absolute() or ".." in path.parts or "\\" in name or name != path.as_posix():
+        raise ValueError(f"Unsafe source manifest path: {name}")
+    private = {".notes", "node_modules", "target", "dist", "release", "HANDOFF.md", "AGENTS.md", "CURRENT_STATE.md", ".git", "__pycache__", "website", "playwright.capture.config.ts", "playwright.site.config.ts"}
+    if (any(part.startswith(".env") or part in private for part in path.parts)
+            or (len(path.parts) > 1 and path.parts[0] == "tests" and path.parts[1] in {"capture", "website"})
+            or name.lower().endswith((".pem", ".key", ".p12", ".pfx", ".local.json"))):
+        raise ValueError(f"Private, website or generated source file included: {name}")
+
+
 def verify(root, against_workspace=False):
-    site = root / "website/dist"
     downloads = root / "release/github"
-    if (site / "downloads").exists() or (site / "demo").exists():
-        raise ValueError("The website must not host release downloads or the app demo")
-    release = json.loads((site / "release.json").read_text())
+    release = json.loads((downloads / "release.json").read_text())
     checksums = (downloads / "SHA256SUMS.txt").read_text().splitlines()
     for key, expected_name in [("mac", "wattle-notes-macos-arm64.zip"), ("source", "wattle-notes-source.zip")]:
         entry = release[key]
@@ -72,9 +80,7 @@ def verify(root, against_workspace=False):
         expected_files = {manifest_name}
         for line in manifest:
             checksum, name = line.split("  ", 1)
-            path = pathlib.PurePosixPath(name)
-            if path.is_absolute() or ".." in path.parts or "\\" in name or name != path.as_posix():
-                raise ValueError(f"Unsafe source manifest path: {name}")
+            check_source_path(name)
             if prefix + name in expected_files:
                 raise ValueError(f"Duplicate source manifest entry: {name}")
             expected_files.add(prefix + name)
@@ -86,26 +92,11 @@ def verify(root, against_workspace=False):
         if actual_files != expected_files:
             raise ValueError("Source archive contains files outside its manifest")
         for path in actual_files:
-            parts = pathlib.PurePosixPath(path).parts
-            if any(part.startswith(".env") or part in {".notes", "node_modules", "target", "dist", "HANDOFF.md", "AGENTS.md", "CURRENT_STATE.md", ".git", "__pycache__"} for part in parts):
-                raise ValueError(f"Private or generated source file included: {path}")
+            check_source_path(path[len(prefix):])
         for name in ["LICENSE", "THIRD_PARTY_NOTICES.md", "README.md", "package-lock.json", "src-tauri/Cargo.lock"]:
             archive.getinfo(prefix + name)
 
-    kit = root / "release/wattle-notes-launch-kit.zip"
-    expected, name = (root / "release/SHA256SUMS.txt").read_text().strip().split("  ", 1)
-    if name != kit.name or digest(kit.read_bytes()) != expected:
-        raise ValueError("The upload ZIP checksum does not match")
-    with zipfile.ZipFile(kit) as archive:
-        check_archive(archive)
-        actual = {entry.filename for entry in archive.infolist() if not entry.is_dir()}
-        expected = {path.relative_to(site).as_posix() for path in site.rglob("*") if path.is_file()}
-        if actual != expected:
-            raise ValueError("The upload ZIP is missing files or has extra entries")
-        for name in actual:
-            if archive.read(name) != (site / name).read_bytes():
-                raise ValueError(f"Upload ZIP content differs from the site: {name}")
-    print(f"Verified GitHub app/source assets, {len(manifest)} source checksums, notices, versions and static website ZIP.")
+    print(f"Verified GitHub app/source assets, {len(manifest)} source checksums, notices and versions; website excluded.")
     print("These checks establish artifact consistency, not code signing, cloud acceptance or public hosting.")
 
 

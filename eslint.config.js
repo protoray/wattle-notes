@@ -10,7 +10,11 @@ export default ts.config(
       'src-tauri/target',
       'playwright-report',
       'test-results',
-      'website/dist/**',
+      'website/**',
+      'tests/capture/**',
+      'tests/website/**',
+      'playwright.capture.config.ts',
+      'playwright.site.config.ts',
       'release/**',
     ],
   },
@@ -23,5 +27,4 @@ export default ts.config(
     rules: { ...hooks.configs.recommended.rules },
   },
   { files: ['**/*.{js,mjs}'], languageOptions: { globals: globals.node } },
-  { files: ['website/**/*.js'], languageOptions: { globals: globals.browser } },
 );

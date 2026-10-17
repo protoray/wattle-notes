@@ -3,6 +3,11 @@ dist/
 src-tauri/target/
 src-tauri/gen/
 website/dist/
+website/
+playwright.capture.config.ts
+playwright.site.config.ts
+tests/capture/
+tests/website/
 release/
 test-results/
 playwright-report/

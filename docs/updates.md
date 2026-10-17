@@ -22,7 +22,7 @@ The maintainer's updater signing key is stored at `~/.tauri/wattle-notes-updater
 
 ## Prepare and publish a future release
 
-1. Increment the app version consistently in npm, Tauri, Cargo and local website metadata. Each published alpha uses a new numeric app version so comparison works (for example, app 0.1.3 with tag `v0.1.3-alpha.1`). Changing only `alpha.N` while retaining the same app version will not offer an update.
+1. Increment the app version consistently in npm, Tauri and Cargo. Each published alpha uses a new numeric app version so comparison works (for example, app 0.1.3 with tag `v0.1.3-alpha.1`). Changing only `alpha.N` while retaining the same app version will not offer an update. Website maintenance is separate from app packaging.
 2. Run the project checks and regenerate notices. Configure the maintainer Google OAuth client for a supported release; an unconfigured build must remain labelled a developer alpha.
 3. With the Rust toolchain on PATH, run `npm run updates:build -- v0.1.5-alpha.1` for the current candidate, or the matching new tag later. This builds the Mac app, creates its updater archive/signature, verifies the signature and signed version against the embedded public key, rejects tampered bytes, checks archive paths, and stages public artifacts in `release/updater/TAG/`. It does not upload or change the public feed.
 4. Prepare the regular app/source ZIPs and checksums using `npm run launch:prepare` and `npm run launch:verify -- --against-workspace`. Preserve exact matching source. Keep historical releases intact.
