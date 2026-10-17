@@ -2,6 +2,12 @@
 
 Executed on the development Mac (Apple Silicon), using Node.js 26.10.0 and an isolated Rust 1.99.0 toolchain. Build/test caches were kept out of source control.
 
+## 17 October: notebook deletion alpha (0.1.8)
+
+Added confirmed deletion of notebook folders and local whole-folder recovery in History & trash. Native checks preserve nested pages, attachments, unindexed files and empty subnotebooks; exercise restart/interrupted moves and simulated indexing failures; reject unsafe paths, symlinks, conflicts, occupied destinations and duplicate page identities; and verify encrypted deletion/restoration through two disposable vaults. The editor flushes pending text before deletion. Full folder archives stay local; normal note and attachment revisions sync.
+
+Validated 99 frontend tests, 10 Node release checks, 50 core integration checks, 11 native module checks (61 unique Rust checks), 17 browser interactions, lint/TypeScript, frontend build, strict desktop/all-target Clippy, formatting and diff checks. These checks use synthetic data. Real user notebooks and credentials were not used, and no new interactive live Google acceptance is claimed. Signed distribution packaging and download/feed verification are recorded privately during publication; see the release assets for the matching source. Website implementation and local continuity files are excluded from future source archives.
+
 ## Automated results
 
 | Check                                                                       | Result                      |

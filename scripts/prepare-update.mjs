@@ -118,7 +118,7 @@ export async function prepareUpdate(tag, environment = process.env, spawn = spaw
     )
   )
     throw new Error('Unexpected updater archive entries.');
-  const notes = `Wattle Notes ${pkg.version} developer alpha. Corrects sync progress to count actual transfers instead of unchanged files being checked. Avoids rewriting unchanged attachments and downloading acknowledged own uploads again. Drive continues checking every 30 seconds for other-device changes, with history integrity checks retained. ${googleConfigured ? 'Google sign-in is built in; users can connect without creating or importing an OAuth client.' : 'Google sign-in is not preconfigured.'} Keeps existing notebook configuration and notes. Mostly vibe coded with AI assistance. Mac build remains unsigned by Apple and not notarized.`;
+  const notes = `Wattle Notes ${pkg.version} developer alpha. Adds notebook and folder deletion with confirmation and full local recovery in History & trash. Preserves nested pages, attachments, empty folders and unindexed files. Saves pending edits first, refuses unsafe paths and restore collisions, and syncs page/attachment deletions and restorations. Retains the responsive sync and accurate transfer progress fixes. ${googleConfigured ? 'Google sign-in is built in; users can connect without creating or importing an OAuth client.' : 'Google sign-in is not preconfigured.'} Keeps existing notebook configuration and notes. Mostly vibe coded with AI assistance. Mac build remains unsigned by Apple and not notarized.`;
   const manifest = updateManifest({ version: pkg.version, tag, signature, notes });
   const destination = join(root, 'release/updater', tag);
   await mkdir(destination, { recursive: true });
