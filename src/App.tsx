@@ -687,9 +687,11 @@ export default function App() {
             >
               <Cloud size={15} />
               {syncing
-                ? syncProgress?.total
-                  ? `Syncing… ${syncProgress.completed}/${syncProgress.total}`
-                  : 'Syncing…'
+                ? syncProgress?.stage.startsWith('Checking')
+                  ? 'Checking Drive…'
+                  : syncProgress?.total
+                    ? `Syncing… ${syncProgress.completed}/${syncProgress.total}`
+                    : 'Syncing…'
                 : native
                   ? account?.connected
                     ? account.unlocked

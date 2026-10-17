@@ -62,7 +62,7 @@ impl<R: Remote> Remote for BackgroundRemote<R> {
         path: &Path,
         properties: &HashMap<String, String>,
         replace: bool,
-    ) -> Result<()> {
+    ) -> Result<Option<String>> {
         self.network(
             self.remote
                 .upload(id, parent, name, path, properties, replace),
@@ -156,8 +156,9 @@ impl<R: Remote> Remote for ListingCache<'_, R> {
         path: &Path,
         properties: &HashMap<String, String>,
         replace: bool,
-    ) -> Result<()> {
-        self.remote
+    ) -> Result<Option<String>> {
+        let version = self
+            .remote
             .upload(id, parent, name, path, properties, replace)
             .await?;
         self.remember(
@@ -169,10 +170,10 @@ impl<R: Remote> Remote for ListingCache<'_, R> {
                 app_properties: properties.clone(),
                 size: None,
                 trashed: false,
-                version: None,
+                version: version.clone(),
             },
         );
-        Ok(())
+        Ok(version)
     }
     async fn download(&self, id: &str, destination: &Path, limit: u64) -> Result<()> {
         self.remote.download(id, destination, limit).await

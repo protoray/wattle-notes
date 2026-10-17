@@ -367,18 +367,104 @@ async fn attachment_heavy_notebook_sync_lists_each_drive_folder_once_and_reports
     assert!(events
         .iter()
         .any(|p| p.stage == "Uploading note history" && p.completed == 200 && p.total == 200));
-    sync::synchronize(&mut source, &remote, &config, &key)
-        .await
+    // Metadata checks must not appear as transfers, rewrite local attachments,
+    // or download this device's own freshly uploaded history.
+    let attachment = dir.path().join("Imported/assets/photo-0.png");
+    let preserved_time = std::time::UNIX_EPOCH + std::time::Duration::from_secs(123456);
+    fs::OpenOptions::new()
+        .write(true)
+        .open(&attachment)
+        .unwrap()
+        .set_times(fs::FileTimes::new().set_modified(preserved_time))
         .unwrap();
+    let idle_events = Mutex::new(Vec::new());
+    remote.uploads.lock().unwrap().clear();
+    remote.downloads.lock().unwrap().clear();
+    sync::synchronize_with_progress(&mut source, &remote, &config, &key, &|p| {
+        idle_events.lock().unwrap().push(p)
+    })
+    .await
+    .unwrap();
+    assert!(remote.uploads.lock().unwrap().is_empty());
+    assert!(remote.downloads.lock().unwrap().is_empty());
+    assert_eq!(
+        fs::metadata(&attachment).unwrap().modified().unwrap(),
+        preserved_time
+    );
+    assert!(!idle_events
+        .lock()
+        .unwrap()
+        .iter()
+        .any(|p| p.stage.starts_with("Downloading")
+            || p.stage.starts_with("Uploading")
+            || p.stage == "Updating Drive notebook"));
     let second_lists = remote.list_calls.load(std::sync::atomic::Ordering::SeqCst) - first_lists;
     assert!(
         second_lists <= 7,
         "unchanged sync must not relist a folder per note: {second_lists}"
     );
+    let note = source.notes().unwrap().remove(0);
+    source
+        .save_note(
+            &note.id,
+            &(note.content.clone() + "\nOne changed page."),
+            &note.hash,
+        )
+        .unwrap();
+    let edit_events = Mutex::new(Vec::new());
+    sync::synchronize_with_progress(&mut source, &remote, &config, &key, &|p| {
+        edit_events.lock().unwrap().push(p)
+    })
+    .await
+    .unwrap();
+    let uploads = remote.uploads.lock().unwrap().clone();
+    assert_eq!(
+        uploads.len(),
+        2,
+        "one history object and one readable mirror, not the whole notebook"
+    );
+    {
+        let files = remote.files.lock().unwrap();
+        let roles: std::collections::HashSet<_> = uploads
+            .iter()
+            .map(|id| {
+                let props = &files[id].0.app_properties;
+                assert_eq!(props.get("newNotesItem"), Some(&note.id));
+                props["newNotesRole"].as_str()
+            })
+            .collect();
+        assert_eq!(
+            roles,
+            std::collections::HashSet::from(["revision", "projection"])
+        );
+    }
+    assert!(remote.downloads.lock().unwrap().is_empty());
+    assert!(edit_events
+        .lock()
+        .unwrap()
+        .iter()
+        .any(|p| p.stage == "Updating Drive notebook" && p.total == 1 && p.completed == 1));
+    assert!(!edit_events
+        .lock()
+        .unwrap()
+        .iter()
+        .any(|p| p.stage == "Uploading attachments" || p.stage.starts_with("Downloading")));
+    assert_eq!(
+        fs::metadata(&attachment).unwrap().modified().unwrap(),
+        preserved_time
+    );
+    remote.uploads.lock().unwrap().clear();
+    sync::synchronize(&mut source, &remote, &config, &key)
+        .await
+        .unwrap();
+    assert!(remote.uploads.lock().unwrap().is_empty());
+    assert!(remote.downloads.lock().unwrap().is_empty());
     sync::synchronize(&mut restored, &remote, &config, &key)
         .await
         .unwrap();
     assert_eq!(restored.notes().unwrap().len(), 100);
+    let changed = restored.note(&note.id).unwrap();
+    assert!(changed.content.contains("One changed page."));
     for index in 0..100 {
         assert_eq!(
             fs::read(
@@ -390,6 +476,68 @@ async fn attachment_heavy_notebook_sync_lists_each_drive_folder_once_and_reports
             vec![137, 80, 78, 71, index as u8]
         );
     }
+    // Other devices' edits must still be received by periodic checks.
+    restored
+        .save_note(
+            &changed.id,
+            &(changed.content.clone() + "\nFrom another device."),
+            &changed.hash,
+        )
+        .unwrap();
+    sync::synchronize(&mut restored, &remote, &config, &key)
+        .await
+        .unwrap();
+    remote.uploads.lock().unwrap().clear();
+    remote.downloads.lock().unwrap().clear();
+    let remote_events = Mutex::new(Vec::new());
+    sync::synchronize_with_progress(&mut source, &remote, &config, &key, &|p| {
+        remote_events.lock().unwrap().push(p)
+    })
+    .await
+    .unwrap();
+    assert!(source
+        .note(&note.id)
+        .unwrap()
+        .content
+        .contains("From another device."));
+    assert_eq!(remote.downloads.lock().unwrap().len(), 1);
+    assert!(remote.uploads.lock().unwrap().is_empty());
+    assert!(remote_events
+        .lock()
+        .unwrap()
+        .iter()
+        .any(|p| p.stage == "Downloading note history" && p.total == 1 && p.completed == 1));
+}
+
+#[tokio::test]
+async fn missing_upload_version_requires_authenticated_read_before_caching() {
+    let (dir, mut source) = vault();
+    let remote = MemoryRemote::default();
+    let (config, key, _) = encryption();
+    source.create_note("Page.md").unwrap();
+    fs::write(dir.path().join("photo.png"), b"attachment").unwrap();
+    remote
+        .omit_upload_versions
+        .store(true, std::sync::atomic::Ordering::SeqCst);
+    sync::synchronize(&mut source, &remote, &config, &key)
+        .await
+        .unwrap();
+    assert!(remote.downloads.lock().unwrap().is_empty());
+    sync::synchronize(&mut source, &remote, &config, &key)
+        .await
+        .unwrap();
+    assert_eq!(
+        remote.downloads.lock().unwrap().len(),
+        3,
+        "one blob and two history objects must be verified without a completion version"
+    );
+    remote.downloads.lock().unwrap().clear();
+    remote.uploads.lock().unwrap().clear();
+    sync::synchronize(&mut source, &remote, &config, &key)
+        .await
+        .unwrap();
+    assert!(remote.downloads.lock().unwrap().is_empty());
+    assert!(remote.uploads.lock().unwrap().is_empty());
 }
 
 #[tokio::test]

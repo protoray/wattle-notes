@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
+import { ensureSyntaxTree } from '@codemirror/language';
 import { EditorSelection, EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import { undo, history } from '@codemirror/commands';
@@ -7,11 +8,15 @@ import { liveDecorations, wrapSelection } from '../src/liveMarkdown';
 import { prefixLines } from '../src/LiveEditor';
 
 function state(doc: string, from = 0, to = from) {
-  return EditorState.create({
+  const initial = EditorState.create({
     doc,
     selection: EditorSelection.single(from, to),
     extensions: [markdown({ base: markdownLanguage })],
   });
+  // Decoration assertions need the complete fixture tree. CodeMirror can yield
+  // its initial parse early when other release checks are using the CPU.
+  expect(ensureSyntaxTree(initial, initial.doc.length, 1000)).not.toBeNull();
+  return initial;
 }
 describe('Markdown live editing preserves the source', () => {
   it('wraps and unwraps selected text while preserving the rest of the Markdown exactly', () => {

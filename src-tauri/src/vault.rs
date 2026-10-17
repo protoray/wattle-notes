@@ -204,6 +204,9 @@ impl Vault {
         Ok(notes)
     }
     pub fn note(&self, id: &str) -> Result<Note> {
+        self.find_note(id)?.ok_or_else(|| fail("Note not found"))
+    }
+    fn find_note(&self, id: &str) -> Result<Option<Note>> {
         let row = rusqlite::OptionalExtension::optional(self.db.query_row(
             "SELECT id,path,content,hash,modified FROM notes WHERE id=?",
             [id],
@@ -216,9 +219,9 @@ impl Vault {
                     r.get::<_, u64>(4)?,
                 ))
             },
-        ))?
-        .ok_or_else(|| fail("Note not found"))?;
-        note_record(row.0, row.1, row.2, row.3, row.4)
+        ))?;
+        row.map(|row| note_record(row.0, row.1, row.2, row.3, row.4))
+            .transpose()
     }
     pub fn search(&self, query: &str) -> Result<Vec<Note>> {
         if query.trim().is_empty() {
@@ -1056,7 +1059,7 @@ impl Vault {
         self.validate_revision(revision)?;
         self.check_collision(&revision.path, Some(&revision.item_id))?;
         let target = paths::inside(&self.root, &revision.path)?;
-        let old = self.notes()?.into_iter().find(|n| n.id == revision.item_id);
+        let old = self.find_note(&revision.item_id)?;
         if revision.deleted {
             if revision.kind == ItemKind::Attachment && target.exists() {
                 let owner = self.get_state(&format!("attachment_owner:{}", revision.path))?;
@@ -1132,11 +1135,12 @@ impl Vault {
                     .blob_id
                     .as_ref()
                     .ok_or_else(|| fail("Missing attachment data"))?;
-                if target.exists()
+                let existing_hash = target.exists().then(|| hash_file(&target)).transpose()?;
+                if existing_hash.is_some()
                     && self
                         .get_state(&format!("attachment:{}", revision.path))?
                         .as_deref()
-                        != Some(&hash_file(&target)?)
+                        != existing_hash.as_deref()
                 {
                     return Err(fail(
                         "The attachment changed during sync; its local file was preserved",
@@ -1146,8 +1150,11 @@ impl Vault {
                 if bytes.len() as u64 > paths::MAX_ATTACHMENT {
                     return Err(fail("Attachment exceeds limit"));
                 }
-                paths::atomic_write(&target, &bytes)?;
-                self.set_state(&format!("attachment:{}", revision.path), &hash(&bytes))?;
+                let digest = hash(&bytes);
+                if existing_hash.as_deref() != Some(&digest) {
+                    paths::atomic_write(&target, &bytes)?;
+                }
+                self.set_state(&format!("attachment:{}", revision.path), &digest)?;
                 self.set_state(
                     &format!("attachment_owner:{}", revision.path),
                     &revision.item_id,

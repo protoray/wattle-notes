@@ -576,7 +576,7 @@ export default function Settings({
             {syncing
               ? 'Sync is running. You can keep using your local notes.'
               : account?.connected && account.unlocked
-                ? 'Ready. Sync now; future changes sync automatically while connected and unlocked.'
+                ? 'Ready. Local changes sync automatically. Drive is checked every 30 seconds for changes from other devices.'
                 : 'Connect Google Drive and unlock encryption to start syncing.'}
           </p>
           {syncing && (

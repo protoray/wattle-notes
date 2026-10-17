@@ -12,6 +12,9 @@ pub(crate) struct MemoryRemote {
     pub(crate) files: Mutex<HashMap<String, StoredFile>>,
     pub(crate) fail_next: Mutex<bool>,
     pub(crate) list_calls: std::sync::atomic::AtomicUsize,
+    pub(crate) uploads: Mutex<Vec<String>>,
+    pub(crate) downloads: Mutex<Vec<String>>,
+    pub(crate) omit_upload_versions: std::sync::atomic::AtomicBool,
 }
 #[async_trait]
 impl Remote for MemoryRemote {
@@ -67,7 +70,8 @@ impl Remote for MemoryRemote {
         path: &Path,
         properties: &HashMap<String, String>,
         replace: bool,
-    ) -> Result<()> {
+    ) -> Result<Option<String>> {
+        self.uploads.lock().unwrap().push(id.into());
         let bytes = fs::read(path)?;
         let mut files = self.files.lock().unwrap();
         if !files.contains_key(id) || replace {
@@ -93,9 +97,19 @@ impl Remote for MemoryRemote {
             *should_fail = false;
             return Err(fail("Simulated uncertain upload delivery"));
         }
-        Ok(())
+        Ok(
+            if self
+                .omit_upload_versions
+                .load(std::sync::atomic::Ordering::SeqCst)
+            {
+                None
+            } else {
+                files.get(id).and_then(|(file, _, _)| file.version.clone())
+            },
+        )
     }
     async fn download(&self, id: &str, destination: &Path, limit: u64) -> Result<()> {
+        self.downloads.lock().unwrap().push(id.into());
         let files = self.files.lock().unwrap();
         let (_, _, bytes) = files.get(id).ok_or_else(|| fail("Missing remote file"))?;
         if bytes.len() as u64 > limit {

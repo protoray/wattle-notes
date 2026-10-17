@@ -208,32 +208,41 @@ async fn sync_inner(
     let remote_blobs = remote.list(Some(&blobs)).await?;
     let remote_revisions = remote.list(Some(&objects)).await?;
     verify_remote_history(vault, &remote_revisions, &remote_blobs)?;
-    report(progress("Downloading attachments", 0, remote_blobs.len()));
-    for (index, file) in remote_blobs.iter().enumerate() {
-        report(progress(
-            "Downloading attachments",
-            index,
-            remote_blobs.len(),
-        ));
-        if property(file, "newNotesRole") != "blob"
-            || property(file, "newNotesVault") != config.vault_id
-        {
-            continue;
-        }
-        let blob_id = property(file, "newNotesBlob");
-        Uuid::parse_str(&blob_id).map_err(|_| fail("Invalid encrypted attachment identity"))?;
-        let known: bool = vault.db.query_row(
-            "SELECT EXISTS(SELECT 1 FROM blobs WHERE id=?)",
-            [&blob_id],
-            |r| r.get(0),
-        )?;
+    report(progress("Checking attachments", 0, 0));
+    let blob_work = remote_blobs
+        .iter()
+        .filter(|file| {
+            property(file, "newNotesRole") == "blob"
+                && property(file, "newNotesVault") == config.vault_id
+        })
+        .map(|file| {
+            let blob_id = property(file, "newNotesBlob");
+            Uuid::parse_str(&blob_id).map_err(|_| fail("Invalid encrypted attachment identity"))?;
+            let known: bool = vault.db.query_row(
+                "SELECT EXISTS(SELECT 1 FROM blobs WHERE id=?)",
+                [&blob_id],
+                |r| r.get(0),
+            )?;
+            let cache_key = format!("remote_version:{}", file.id);
+            let unchanged = known
+                && vault.internal(&format!("blobs/{blob_id}"))?.exists()
+                && file.version.as_ref().is_some_and(|version| {
+                    vault.get_state(&cache_key).ok().flatten().as_ref() == Some(version)
+                });
+            Ok((file, blob_id, !unchanged))
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let blob_total = blob_work
+        .iter()
+        .filter(|(_, _, download)| *download)
+        .count();
+    let mut downloaded_blobs = 0;
+    if blob_total > 0 {
+        report(progress("Downloading attachments", 0, blob_total));
+    }
+    for (file, blob_id, download) in blob_work {
         let cache_key = format!("remote_version:{}", file.id);
-        let unchanged = known
-            && vault.internal(&format!("blobs/{blob_id}"))?.exists()
-            && file.version.as_ref().is_some_and(|version| {
-                vault.get_state(&cache_key).ok().flatten().as_ref() == Some(version)
-            });
-        if !unchanged {
+        if download {
             let temp = vault.internal(&format!("transfer/{blob_id}.enc"))?;
             remote
                 .download(&file.id, &temp, paths::MAX_ATTACHMENT + 128 * 1024)
@@ -272,6 +281,14 @@ async fn sync_inner(
                 params![blob_id, format!("blobs/{blob_id}")],
             )?;
         }
+        if download {
+            downloaded_blobs += 1;
+            report(progress(
+                "Downloading attachments",
+                downloaded_blobs,
+                blob_total,
+            ));
+        }
         if let Some(version) = &file.version {
             vault.set_state(&cache_key, version)?;
         }
@@ -280,37 +297,42 @@ async fn sync_inner(
             params![file.id, blob_id],
         )?;
     }
-    report(progress(
-        "Downloading note history",
-        0,
-        remote_revisions.len(),
-    ));
-    for (index, file) in remote_revisions.iter().enumerate() {
-        report(progress(
-            "Downloading note history",
-            index,
-            remote_revisions.len(),
-        ));
-        if property(file, "newNotesRole") != "revision"
-            || property(file, "newNotesVault") != config.vault_id
-        {
-            continue;
-        }
-        let id = property(file, "newNotesRevision");
-        let item = property(file, "newNotesItem");
-        Uuid::parse_str(&id).map_err(|_| fail("Invalid remote revision identity"))?;
-        Uuid::parse_str(&item).map_err(|_| fail("Invalid remote item identity"))?;
-        let known: bool = vault.db.query_row(
-            "SELECT EXISTS(SELECT 1 FROM revisions WHERE id=?)",
-            [&id],
-            |r| r.get(0),
-        )?;
+    report(progress("Checking note history", 0, 0));
+    let revision_work = remote_revisions
+        .iter()
+        .filter(|file| {
+            property(file, "newNotesRole") == "revision"
+                && property(file, "newNotesVault") == config.vault_id
+        })
+        .map(|file| {
+            let id = property(file, "newNotesRevision");
+            let item = property(file, "newNotesItem");
+            Uuid::parse_str(&id).map_err(|_| fail("Invalid remote revision identity"))?;
+            Uuid::parse_str(&item).map_err(|_| fail("Invalid remote item identity"))?;
+            let known: bool = vault.db.query_row(
+                "SELECT EXISTS(SELECT 1 FROM revisions WHERE id=?)",
+                [&id],
+                |r| r.get(0),
+            )?;
+            let cache_key = format!("remote_version:{}", file.id);
+            let unchanged = known
+                && file.version.as_ref().is_some_and(|version| {
+                    vault.get_state(&cache_key).ok().flatten().as_ref() == Some(version)
+                });
+            Ok((file, id, item, !unchanged))
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let download_total = revision_work
+        .iter()
+        .filter(|(_, _, _, download)| *download)
+        .count();
+    let mut downloaded_revisions = 0;
+    if download_total > 0 {
+        report(progress("Downloading note history", 0, download_total));
+    }
+    for (file, id, item, download) in revision_work {
         let cache_key = format!("remote_version:{}", file.id);
-        let unchanged = known
-            && file.version.as_ref().is_some_and(|version| {
-                vault.get_state(&cache_key).ok().flatten().as_ref() == Some(version)
-            });
-        if !unchanged {
+        if download {
             let temp = vault.internal(&format!("transfer/{id}.enc"))?;
             remote.download(&file.id, &temp, 32 * 1024 * 1024).await?;
             let bytes = crypto::unseal(
@@ -324,6 +346,14 @@ async fn sync_inner(
             }
             vault.insert_revision(&revision, true)?;
             fs::remove_file(temp)?;
+        }
+        if download {
+            downloaded_revisions += 1;
+            report(progress(
+                "Downloading note history",
+                downloaded_revisions,
+                download_total,
+            ));
         }
         if let Some(version) = &file.version {
             vault.set_state(&cache_key, version)?;
@@ -345,7 +375,9 @@ async fn sync_inner(
         rows.collect::<std::result::Result<_, _>>()?
     };
     let blob_total = pending_blobs.len();
-    report(progress("Uploading attachments", 0, blob_total));
+    if blob_total > 0 {
+        report(progress("Uploading attachments", 0, blob_total));
+    }
     for (index, (id, local)) in pending_blobs.into_iter().enumerate() {
         report(progress("Uploading attachments", index, blob_total));
         let remote_id = allocated(vault, remote, &format!("upload_blob:{id}")).await?;
@@ -362,7 +394,7 @@ async fn sync_inner(
         )?;
         let mut props = properties("blob", &config.vault_id);
         props.insert("newNotesBlob".into(), id.clone());
-        remote
+        let version = remote
             .upload(
                 &remote_id,
                 &blobs,
@@ -372,6 +404,9 @@ async fn sync_inner(
                 false,
             )
             .await?;
+        if let Some(version) = version {
+            vault.set_state(&format!("remote_version:{remote_id}"), &version)?;
+        }
         fs::remove_file(temp)?;
         vault.db.execute(
             "UPDATE blobs SET uploaded=1,drive_id=? WHERE id=?",
@@ -389,7 +424,9 @@ async fn sync_inner(
                 r.get(0)
             })?;
     let mut uploaded_count = 0;
-    report(progress("Uploading note history", 0, revision_total));
+    if revision_total > 0 {
+        report(progress("Uploading note history", 0, revision_total));
+    }
     for revision in ordered {
         let uploaded: bool = vault.db.query_row(
             "SELECT uploaded FROM revisions WHERE id=?",
@@ -437,7 +474,7 @@ async fn sync_inner(
         let mut props = properties("revision", &config.vault_id);
         props.insert("newNotesRevision".into(), revision.id.clone());
         props.insert("newNotesItem".into(), revision.item_id.clone());
-        remote
+        let version = remote
             .upload(
                 &remote_id,
                 &objects,
@@ -447,6 +484,9 @@ async fn sync_inner(
                 false,
             )
             .await?;
+        if let Some(version) = version {
+            vault.set_state(&format!("remote_version:{remote_id}"), &version)?;
+        }
         fs::remove_file(temp)?;
         vault.db.execute(
             "UPDATE revisions SET uploaded=1,drive_id=? WHERE id=?",
@@ -731,10 +771,9 @@ async fn refresh_projection(
         .collect();
     let all = vault.revisions(None)?;
     let items: HashSet<String> = all.iter().map(|r| r.item_id.clone()).collect();
-    let total = items.len();
-    report(progress("Updating Drive notebook", 0, total));
-    for (index, item) in items.into_iter().enumerate() {
-        report(progress("Updating Drive notebook", index, total));
+    report(progress("Checking Drive notebook", 0, 0));
+    let mut pending = Vec::new();
+    for item in items {
         if conflicts.contains(&item) {
             continue;
         }
@@ -797,7 +836,11 @@ async fn refresh_projection(
                 && file.name
                     == format!(
                         "{}.enc",
-                        segments.last().ok_or_else(|| fail("Missing filename"))?
+                        revision
+                            .path
+                            .rsplit('/')
+                            .next()
+                            .ok_or_else(|| fail("Missing filename"))?
                     )
             {
                 vault.db.execute(
@@ -825,6 +868,13 @@ async fn refresh_projection(
         if matching.is_some() && !replace {
             return Err(fail("A readable Drive mirror file was removed. Restore it from Drive Trash; local notes and encrypted history are preserved."));
         }
+        pending.push((item, revision.clone(), parent, id, replace));
+    }
+    let total = pending.len();
+    if total > 0 {
+        report(progress("Updating Drive notebook", 0, total));
+    }
+    for (index, (item, revision, parent, id, replace)) in pending.into_iter().enumerate() {
         let temp = vault.internal(&format!("transfer/projection-{item}.enc"))?;
         match revision.kind {
             ItemKind::Note => {
@@ -861,7 +911,11 @@ async fn refresh_projection(
                 &parent,
                 &format!(
                     "{}.enc",
-                    segments.last().ok_or_else(|| fail("Missing filename"))?
+                    revision
+                        .path
+                        .rsplit('/')
+                        .next()
+                        .ok_or_else(|| fail("Missing filename"))?
                 ),
                 &temp,
                 &props,
@@ -873,7 +927,7 @@ async fn refresh_projection(
             "INSERT OR REPLACE INTO projection VALUES(?,?,?)",
             params![item, id, revision.path],
         )?;
+        report(progress("Updating Drive notebook", index + 1, total));
     }
-    report(progress("Updating Drive notebook", total, total));
     Ok(())
 }

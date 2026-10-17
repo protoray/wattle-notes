@@ -912,7 +912,7 @@ mod tests {
             _: &Path,
             _: &HashMap<String, String>,
             _: bool,
-        ) -> Result<()> {
+        ) -> Result<Option<String>> {
             unreachable!()
         }
         async fn download(&self, _: &str, _: &Path, _: u64) -> Result<()> {

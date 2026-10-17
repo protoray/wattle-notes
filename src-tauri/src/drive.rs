@@ -33,6 +33,8 @@ pub trait Remote: Send + Sync {
         name: &str,
         properties: &HashMap<String, String>,
     ) -> Result<()>;
+    /// Return the acknowledged remote version when available. None requires
+    /// authenticated revalidation on the next sync pass.
     async fn upload(
         &self,
         id: &str,
@@ -41,7 +43,7 @@ pub trait Remote: Send + Sync {
         path: &Path,
         properties: &HashMap<String, String>,
         replace: bool,
-    ) -> Result<()>;
+    ) -> Result<Option<String>>;
     async fn download(&self, id: &str, destination: &Path, limit: u64) -> Result<()>;
     async fn start_cursor(&self) -> Result<String>;
     async fn changes(&self, cursor: &str) -> Result<(String, Vec<String>)>;
@@ -187,7 +189,7 @@ impl Remote for DriveClient {
         path: &Path,
         properties: &HashMap<String, String>,
         replace: bool,
-    ) -> Result<()> {
+    ) -> Result<Option<String>> {
         Self::file_url(id)?;
         Self::file_url(parent)?;
         let length = tokio::fs::metadata(path).await?.len();
@@ -197,9 +199,9 @@ impl Remote for DriveClient {
             json!({"id":id,"name":name,"parents":[parent],"appProperties":properties})
         };
         let endpoint = if replace {
-            format!("https://www.googleapis.com/upload/drive/v3/files/{id}?uploadType=resumable")
+            format!("https://www.googleapis.com/upload/drive/v3/files/{id}?uploadType=resumable&fields=id,version")
         } else {
-            "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable".into()
+            "https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&fields=id,version".into()
         };
         for attempt in 0..5u32 {
             let response = self
@@ -215,7 +217,9 @@ impl Remote for DriveClient {
                 .send()
                 .await?;
             if response.status() == StatusCode::CONFLICT && !replace {
-                return Ok(());
+                // An uncertain earlier delivery may have created this ID. Only a
+                // later authenticated download can establish its cached version.
+                return Ok(None);
             }
             if !response.status().is_success() {
                 if response.status().is_server_error()
@@ -264,7 +268,7 @@ impl Remote for DriveClient {
                         if offset + count as u64 != length {
                             return Err(fail("Drive completed an incomplete upload"));
                         }
-                        return Ok(());
+                        return Ok(completed_upload_version(r, id).await);
                     }
                     Ok(r) if r.status().as_u16() == 308 => {
                         offset = acknowledged_offset(&r)?;
@@ -290,7 +294,7 @@ impl Remote for DriveClient {
                             .send()
                             .await?;
                         if status.status().is_success() {
-                            return Ok(());
+                            return Ok(completed_upload_version(status, id).await);
                         }
                         if status.status().as_u16() != 308 {
                             break;
@@ -408,6 +412,23 @@ impl Remote for DriveClient {
     }
 }
 
+async fn completed_upload_version(response: reqwest::Response, id: &str) -> Option<String> {
+    // Without trustworthy completion metadata, leave the version uncached so
+    // the next pass downloads/authenticates the object rather than guessing.
+    let metadata: Value = response.json().await.ok()?;
+    upload_version(&metadata, id)
+}
+
+fn upload_version(metadata: &Value, id: &str) -> Option<String> {
+    if metadata["id"].as_str() != Some(id) {
+        return None;
+    }
+    metadata["version"]
+        .as_str()
+        .filter(|value| !value.is_empty())
+        .map(String::from)
+}
+
 fn acknowledged_offset(response: &reqwest::Response) -> Result<u64> {
     match response
         .headers()
@@ -420,5 +441,27 @@ fn acknowledged_offset(response: &reqwest::Response) -> Result<u64> {
             .and_then(|s| s.parse::<u64>().ok())
             .and_then(|n| n.checked_add(1))
             .ok_or_else(|| fail("Invalid Drive upload acknowledgment")),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn upload_version_requires_matching_identity_and_completion_metadata() {
+        assert_eq!(
+            upload_version(&json!({"id":"file", "version":"7"}), "file"),
+            Some("7".into())
+        );
+        assert_eq!(
+            upload_version(&json!({"id":"other", "version":"7"}), "file"),
+            None
+        );
+        assert_eq!(upload_version(&json!({"id":"file"}), "file"), None);
+        assert_eq!(
+            upload_version(&json!({"id":"file", "version":""}), "file"),
+            None
+        );
     }
 }
