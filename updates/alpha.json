@@ -1,11 +1,11 @@
 {
-  "version": "0.1.9",
-  "notes": "Wattle Notes 0.1.9 developer alpha. Updates the embedded SQLite engine to 3.53.2 and Rustls to 0.23.46, removes unused legacy ZIP support, and backports the upstream Linux GLib iterator safety fix. Adds defensive SQLite settings and dependency security checks. Google sign-in is built in; users can connect without creating or importing an OAuth client. Keeps existing notebook configuration and notes. Mostly vibe coded with AI assistance. Mac build remains unsigned by Apple and not notarized.",
-  "pub_date": "2026-10-18T09:18:28.474Z",
+  "version": "0.1.10",
+  "notes": "Wattle Notes 0.1.10 developer alpha. Fixes the macOS damaged-app packaging fault by explicitly ad-hoc signing the complete bundle and verifying its resource seal before packaging. Retains the SQLite, Rustls, GLib and updater security fixes. macOS may still require Privacy & Security approval because the app is not notarized by Apple. Google sign-in is built in; users can connect without creating or importing an OAuth client. Keeps existing notebook configuration and notes. Mostly vibe coded with AI assistance. Mac build remains unsigned by Apple and not notarized.",
+  "pub_date": "2026-10-18T09:37:13.336Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTMFRwL3ZxSDU4UmhEQnhsd3Q1cE1PZGh1Qlp5N0Nob29DWlAveERFcmxURXp1Nlk2LzZhdTlSeGZUSFJXZ1o1MnAzSlZuTXpWNk96c1FScnR1ajZwK1pTVGxFREwvUGdFPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMzE1MDkxCWZpbGU6V2F0dGxlIE5vdGVzLmFwcC50YXIuZ3oJdmVyc2lvbjowLjEuOQpJS29jbEZLQ3NCdC9OeTdaUlIyZVNNTndzMmlvVCtIUGpTM2tuc3psREQ4VVVhVmlXb0U0SVJjcjlmL2hMbTMyK0luR2xGanBMTHJ4V2xhS1dHUEdEZz09Cg==",
-      "url": "https://github.com/protoray/wattle-notes/releases/download/v0.1.9-alpha.1/wattle-notes-macos-arm64.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTMFRwL3ZxSDU4UmpVVDN6R21sdkJEWG92dWIzSG84d2pvRStLZmdnbnp6T2FrNENzS3plbXM0Q082ZFpzem1tUCtnOTg5Yjh2aW9yTVJ3OUNOVFEyNXMva0duSVNHNEE4PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyMzE2MjE3CWZpbGU6V2F0dGxlIE5vdGVzLmFwcC50YXIuZ3oJdmVyc2lvbjowLjEuMTAKYXliaXowMi9IeEsxVW02RFY3YVhsYUFWUlRxR1djamd6TnJEZjRFK0srZ3dIUkFWNmJNakZKSEUxK1daaGZlVVRBbnZ1WVFFUGdHaU0wSUxvNy9TQkE9PQo=",
+      "url": "https://github.com/protoray/wattle-notes/releases/download/v0.1.10-alpha.1/wattle-notes-macos-arm64.app.tar.gz"
     }
   }
 }
