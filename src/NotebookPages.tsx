@@ -149,9 +149,8 @@ function NotebookPagesWorkspace({
               type="button"
               aria-label={`Delete notebook ${node.path}`}
               title={
-                syncing ? 'Wait for sync to finish before deleting a notebook' : 'Delete notebook'
+                syncing ? 'Delete notebook after the current sync finishes' : 'Delete notebook'
               }
-              disabled={syncing}
               onClick={() => onDeleteNotebook(node.path)}
             >
               <Trash2 size={14} aria-hidden="true" />

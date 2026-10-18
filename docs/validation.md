@@ -2,6 +2,12 @@
 
 Executed on the development Mac (Apple Silicon), using Node.js 26.10.0 and an isolated Rust 1.99.0 toolchain. Build/test caches were kept out of source control.
 
+## 18 October: notebook deletion during sync
+
+The sidebar trash button remains usable during a Drive pass. Confirmed deletion waits for that pass, takes priority over another automatic/reconnect sync and can be cancelled before local deletion begins. Regression checks cover Keep notebook, close and Escape cancellation, replacing a cancelled wait, saving pending text, failed sync, and a changed workspace. Native tests independently reject mutation during sync and a stale workspace root. Existing whole-folder trash and restore behavior remains intact.
+
+Passed 105 frontend tests, 15 Node checks, 17 browser checks, 52 core integration tests and 13 native module checks, lint/TypeScript, frontend build, strict desktop/all-target Clippy, formatting and the dependency security gate. All fixtures are synthetic; no installed app, real notebook or cloud account was used. Publication status is recorded separately.
+
 ## 17 October: notebook deletion alpha (0.1.8)
 
 Added confirmed deletion of notebook folders and local whole-folder recovery in History & trash. Native checks preserve nested pages, attachments, unindexed files and empty subnotebooks; exercise restart/interrupted moves and simulated indexing failures; reject unsafe paths, symlinks, conflicts, occupied destinations and duplicate page identities; and verify encrypted deletion/restoration through two disposable vaults. The editor flushes pending text before deletion. Full folder archives stay local; normal note and attachment revisions sync.

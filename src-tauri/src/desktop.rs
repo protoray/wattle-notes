@@ -259,8 +259,23 @@ async fn create_folder(state: State<'_, AppState>, path: String) -> Command<()> 
     local(&state, move |v| v.create_folder(&path)).await
 }
 #[tauri::command]
-async fn delete_folder(state: State<'_, AppState>, path: String) -> Command<()> {
-    exclusive_local(&state, move |v| v.delete_folder(&path)).await
+async fn delete_folder(
+    state: State<'_, AppState>,
+    path: String,
+    expected_root: String,
+) -> Command<()> {
+    exclusive_local(&state, move |v| {
+        delete_notebook(v, Path::new(&expected_root), &path)
+    })
+    .await
+}
+fn delete_notebook(vault: &mut Vault, expected_root: &Path, path: &str) -> Result<()> {
+    if vault.root != expected_root {
+        return Err(fail(
+            "The open workspace changed. Select the notebook again before deleting it.",
+        ));
+    }
+    vault.delete_folder(path)
 }
 #[tauri::command]
 async fn deleted_folders(state: State<'_, AppState>) -> Command<Vec<DeletedFolder>> {
@@ -889,6 +904,41 @@ mod tests {
     use crate::drive::Remote;
     use async_trait::async_trait;
     use std::collections::HashMap;
+    #[test]
+    fn notebook_deletion_is_bound_to_the_confirmed_workspace() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let mut vault = Vault::open(dir.path()).unwrap();
+        vault.create_note("Work/Keep.md").unwrap();
+        let root = vault.root.clone();
+        assert!(delete_notebook(&mut vault, &root.join("other"), "Work").is_err());
+        assert!(root.join("Work/Keep.md").exists());
+        assert!(vault.deleted_folders().unwrap().is_empty());
+        delete_notebook(&mut vault, &root, "Work").unwrap();
+        assert!(!root.join("Work").exists());
+        assert_eq!(vault.deleted_folders().unwrap().len(), 1);
+    }
+    #[tokio::test]
+    async fn notebook_deletion_cannot_overlap_an_active_sync() {
+        let dir = tempfile::TempDir::new().unwrap();
+        let mut vault = Vault::open(dir.path()).unwrap();
+        vault.create_note("Work/Keep.md").unwrap();
+        let root = vault.root.clone();
+        let inner = Arc::new(Inner {
+            vault: Mutex::new(Some(vault)),
+            ..Inner::default()
+        });
+        let state = AppState(inner.clone());
+        let running = ActiveSync::begin(inner).unwrap();
+        let expected_root = root.clone();
+        let result =
+            exclusive_local(&state, move |v| delete_notebook(v, &expected_root, "Work")).await;
+        assert!(result.is_err());
+        assert!(root.join("Work/Keep.md").exists());
+        drop(running);
+        exclusive_local(&state, move |v| delete_notebook(v, &root, "Work"))
+            .await
+            .unwrap();
+    }
     mod memory_remote {
         include!(concat!(
             env!("CARGO_MANIFEST_DIR"),

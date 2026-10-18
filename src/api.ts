@@ -121,6 +121,10 @@ export async function call<T>(command: string, args: Record<string, unknown> = {
       result = null;
       break;
     case 'delete_folder': {
+      if (args.expectedRoot !== demoInfo().root)
+        throw new Error(
+          'The open workspace changed. Select the notebook again before deleting it.',
+        );
       const path = String(args.path);
       if (!path || !demoInfo().folders.includes(path)) throw new Error('Notebook folder not found');
       const contains = (value: string) => value === path || value.startsWith(`${path}/`);

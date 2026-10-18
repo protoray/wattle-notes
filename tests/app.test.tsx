@@ -21,6 +21,9 @@ const fixture = vi.hoisted(() => ({
   otherNote: null as Note | null,
   removedIds: [] as string[],
   deleteFolder: vi.fn(),
+  syncGate: null as Promise<void> | null,
+  syncStarted: vi.fn(),
+  connected: false,
 }));
 vi.mock('@tauri-apps/plugin-dialog', () => ({ open: fixture.folder }));
 vi.mock('@tauri-apps/api/event', () => ({
@@ -63,13 +66,19 @@ vi.mock('../src/api', () => ({
       case 'account_info':
         return {
           encrypted: false,
-          unlocked: false,
-          connected: false,
+          unlocked: fixture.connected,
+          connected: fixture.connected,
           bundled_client: false,
           settings: { client_id: '', client_secret: null },
         };
       case 'note_links':
         return { outbound: [], backlinks: [] };
+      case 'sync_now':
+        fixture.syncStarted();
+        await fixture.syncGate;
+        return { state: 'synced', pending: 0, conflicts: 0, last_sync: 1, message: null };
+      case 'sync_progress':
+        return null;
       case 'search_notes':
         fixture.searchStarted();
         return fixture.searchGate ?? [note];
@@ -78,6 +87,10 @@ vi.mock('../src/api', () => ({
       case 'deleted_folders':
         return [];
       case 'delete_folder': {
+        if (args.expectedRoot !== fixture.currentRoot)
+          throw new Error(
+            'The open workspace changed. Select the notebook again before deleting it.',
+          );
         fixture.deleteFolder(String(args.path));
         const path = String(args.path);
         fixture.removedIds.push(
@@ -169,6 +182,9 @@ beforeEach(() => {
   fixture.copies = [];
   fixture.removedIds = [];
   fixture.deleteFolder.mockReset();
+  fixture.syncGate = null;
+  fixture.syncStarted.mockReset();
+  fixture.connected = false;
   fixture.folders = [];
   localStorage.clear();
   fixture.resolved = false;
@@ -316,6 +332,129 @@ describe('Conflict resolution returns to the current editor safely', () => {
 });
 
 describe('Notebook and page creation', () => {
+  it('queues deletion during sync and gives it priority over another automatic sync', async () => {
+    fixture.connected = true;
+    fixture.resolved = true;
+    fixture.allowSave = true;
+    fixture.note!.path = 'Work/Idea.md';
+    fixture.folders = ['Work'];
+    let finishSync!: () => void;
+    let finishSave!: () => void;
+    fixture.syncGate = new Promise<void>((resolve) => {
+      finishSync = resolve;
+    });
+    const user = userEvent.setup();
+    render(<App />);
+    const editor = await screen.findByLabelText('Markdown editor');
+    await user.click(await screen.findByRole('button', { name: 'Sync now' }));
+    await waitFor(() => expect(fixture.syncStarted).toHaveBeenCalledTimes(1));
+    fireEvent.change(editor, { target: { value: '# Idea\n\nSaved after waiting for sync.' } });
+    fixture.saveGate = new Promise<void>((resolve) => {
+      finishSave = resolve;
+    });
+    await user.click(screen.getByRole('button', { name: 'Delete notebook Work' }));
+    await user.click(screen.getByRole('button', { name: 'Delete after sync' }));
+    const confirm = screen.getByRole('dialog', { name: 'Delete this notebook?' });
+    expect(within(confirm).getByRole('status').textContent).toContain(
+      'Waiting for the current sync',
+    );
+    expect(fixture.deleteFolder).not.toHaveBeenCalled();
+    // Replace a cancelled wait while the same pass is still active. The older
+    // continuation must not clear the newer request's busy/priority state.
+    await user.click(within(confirm).getByRole('button', { name: 'Keep notebook' }));
+    await user.click(screen.getByRole('button', { name: 'Delete notebook Work' }));
+    await user.click(screen.getByRole('button', { name: 'Delete after sync' }));
+    const replacement = screen.getByRole('dialog', { name: 'Delete this notebook?' });
+    await act(async () => {
+      finishSync();
+    });
+    await waitFor(() =>
+      expect(within(replacement).getByRole('button', { name: 'Deleting…' })).toBeTruthy(),
+    );
+    // The sync pass has ended, but saving before deletion is still pending.
+    // An online event must not steal the idle slot and block deletion again.
+    fireEvent(window, new Event('online'));
+    expect(fixture.syncStarted).toHaveBeenCalledTimes(1);
+    expect(fixture.deleteFolder).not.toHaveBeenCalled();
+    await act(async () => {
+      finishSave();
+    });
+    await waitFor(() => expect(fixture.deleteFolder).toHaveBeenCalledWith('Work'));
+    expect(fixture.note!.content).toContain('Saved after waiting for sync.');
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+  it('can finish a confirmed local deletion after the active sync fails', async () => {
+    fixture.connected = true;
+    fixture.resolved = true;
+    fixture.note!.path = 'Work/Idea.md';
+    fixture.folders = ['Work'];
+    let failSync!: (error: Error) => void;
+    fixture.syncGate = new Promise<void>((_resolve, reject) => {
+      failSync = reject;
+    });
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByLabelText('Markdown editor');
+    await user.click(await screen.findByRole('button', { name: 'Sync now' }));
+    await user.click(screen.getByRole('button', { name: 'Delete notebook Work' }));
+    await user.click(screen.getByRole('button', { name: 'Delete after sync' }));
+    await act(async () => {
+      failSync(new Error('Drive request timed out'));
+    });
+    await waitFor(() => expect(fixture.deleteFolder).toHaveBeenCalledWith('Work'));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  });
+  it.each(['Keep notebook', 'Close dialog', 'Escape'])(
+    'cancels a queued deletion using %s without deleting when sync finishes',
+    async (cancel) => {
+      fixture.connected = true;
+      fixture.resolved = true;
+      fixture.note!.path = 'Work/Idea.md';
+      fixture.folders = ['Work'];
+      let finishSync!: () => void;
+      fixture.syncGate = new Promise<void>((resolve) => {
+        finishSync = resolve;
+      });
+      const user = userEvent.setup();
+      render(<App />);
+      await screen.findByLabelText('Markdown editor');
+      await user.click(await screen.findByRole('button', { name: 'Sync now' }));
+      await waitFor(() => expect(fixture.syncStarted).toHaveBeenCalled());
+      await user.click(screen.getByRole('button', { name: 'Delete notebook Work' }));
+      await user.click(screen.getByRole('button', { name: 'Delete after sync' }));
+      if (cancel === 'Escape') await user.keyboard('{Escape}');
+      else await user.click(screen.getByRole('button', { name: cancel }));
+      expect(screen.queryByRole('dialog')).toBeNull();
+      await act(async () => {
+        finishSync();
+      });
+      expect(fixture.deleteFolder).not.toHaveBeenCalled();
+      expect(screen.getByLabelText('Markdown editor')).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'Delete notebook Work' })).toBeTruthy();
+    },
+  );
+  it('does not delete a same-named notebook if the workspace changes while waiting', async () => {
+    fixture.connected = true;
+    fixture.resolved = true;
+    fixture.note!.path = 'Work/Idea.md';
+    fixture.folders = ['Work'];
+    let finishSync!: () => void;
+    fixture.syncGate = new Promise<void>((resolve) => {
+      finishSync = resolve;
+    });
+    const user = userEvent.setup();
+    render(<App />);
+    await screen.findByLabelText('Markdown editor');
+    await user.click(await screen.findByRole('button', { name: 'Sync now' }));
+    await user.click(screen.getByRole('button', { name: 'Delete notebook Work' }));
+    await user.click(screen.getByRole('button', { name: 'Delete after sync' }));
+    fixture.currentRoot = 'other';
+    await act(async () => {
+      finishSync();
+    });
+    expect((await screen.findByRole('alert')).textContent).toContain('workspace changed');
+    expect(fixture.deleteFolder).not.toHaveBeenCalled();
+  });
   it('confirms notebook deletion, saves pending text, and keeps neighbouring notebooks', async () => {
     fixture.allowSave = true;
     fixture.resolved = true;

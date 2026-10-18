@@ -70,6 +70,7 @@ export default function App() {
   const [message, setMessage] = useState('');
   const [saving, setSaving] = useState(false);
   const [deletingFolder, setDeletingFolder] = useState(false);
+  const [waitingForFolderSync, setWaitingForFolderSync] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const syncProgress = useSyncProgress(syncing);
   const [saveTick, setSaveTick] = useState(0);
@@ -83,6 +84,13 @@ export default function App() {
   const draftRef = useRef('');
   const savingPromise = useRef<Promise<Note> | null>(null);
   const busySync = useRef(false);
+  const syncJob = useRef<Promise<SyncStatus | undefined> | null>(null);
+  const folderDeletion = useRef<{
+    root: string;
+    path: string;
+    waiting: boolean;
+    cancelled: boolean;
+  } | null>(null);
   const accountRef = useRef<AccountInfo | null>(null);
   const searchInput = useRef<HTMLInputElement>(null);
   const actionRef = useRef<{ create: () => void; save: () => void }>({
@@ -90,6 +98,14 @@ export default function App() {
     save: () => {},
   });
   const closeDialog = useCallback(() => {
+    const pending = folderDeletion.current;
+    if (pending) {
+      if (!pending.waiting) return;
+      pending.cancelled = true;
+      folderDeletion.current = null;
+      setDeletingFolder(false);
+      setWaitingForFolderSync(false);
+    }
     setDialog(null);
     setField('');
   }, []);
@@ -164,24 +180,30 @@ export default function App() {
     accountRef.current = next;
     setAccount(next);
   }, []);
-  const syncNow = useCallback(async () => {
-    if (busySync.current) return;
+  const syncNow = useCallback(() => {
+    // Give a confirmed notebook deletion the next idle slot. Periodic checks
+    // must not continually start another pass while it is waiting.
+    if (busySync.current || folderDeletion.current) return Promise.resolve(undefined);
     busySync.current = true;
-    try {
-      setSyncing(true);
-      await saveCurrent();
-      const status = await call<SyncStatus>('sync_now');
-      setInfo((v) => (v ? { ...v, status } : v));
-      await refresh();
-      return status;
-    } catch (error) {
-      setMessage(String(error));
-      await refresh().catch(() => {});
-    } finally {
-      busySync.current = false;
-      setSyncing(false);
-      setSaveTick((n) => n + 1);
-    }
+    const job = (async () => {
+      try {
+        setSyncing(true);
+        await saveCurrent();
+        const status = await call<SyncStatus>('sync_now');
+        setInfo((v) => (v ? { ...v, status } : v));
+        await refresh();
+        return status;
+      } catch (error) {
+        setMessage(String(error));
+        await refresh().catch(() => {});
+      } finally {
+        busySync.current = false;
+        setSyncing(false);
+        setSaveTick((n) => n + 1);
+      }
+    })();
+    syncJob.current = job;
+    return job;
   }, [refresh, saveCurrent]);
   useEffect(() => {
     let cancelled = false;
@@ -289,6 +311,10 @@ export default function App() {
         return;
       }
       if (!(event.metaKey || event.ctrlKey)) return;
+      if (folderDeletion.current) {
+        event.preventDefault();
+        return;
+      }
       if (event.key.toLowerCase() === 's') {
         event.preventDefault();
         actionRef.current.save();
@@ -388,9 +414,42 @@ export default function App() {
     closeDialog();
     await refreshAccount();
   }
+  async function deleteNotebook() {
+    if (folderDeletion.current || !info || !field) return;
+    const pending = { root: info.root, path: field, waiting: busySync.current, cancelled: false };
+    folderDeletion.current = pending;
+    setDeletingFolder(true);
+    setWaitingForFolderSync(pending.waiting);
+    try {
+      if (pending.waiting) await syncJob.current;
+      if (pending.cancelled) return;
+      pending.waiting = false;
+      setWaitingForFolderSync(false);
+      await saveCurrent();
+      await call('delete_folder', { path: pending.path, expectedRoot: pending.root });
+      if (base.current?.path.startsWith(`${pending.path}/`)) assign(null);
+      if (folder === pending.path || folder.startsWith(`${pending.path}/`))
+        setFolder(pageNotebook(pending.path));
+      setQuery('');
+      setSearchResults(null);
+      await refresh();
+      folderDeletion.current = null;
+      setDeletingFolder(false);
+      setWaitingForFolderSync(false);
+      closeDialog();
+    } catch (e) {
+      if (!pending.cancelled) setMessage(String(e));
+    } finally {
+      // An earlier cancelled wait must not clear a newer deletion request.
+      if (folderDeletion.current === pending) {
+        folderDeletion.current = null;
+        setDeletingFolder(false);
+        setWaitingForFolderSync(false);
+      }
+    }
+  }
   async function submitDialog() {
-    if (deletingFolder) return;
-    if (dialog === 'delete-folder') setDeletingFolder(true);
+    if (dialog === 'delete-folder') return deleteNotebook();
     try {
       await saveCurrent();
       if (dialog === 'new-note') {
@@ -432,19 +491,10 @@ export default function App() {
         await call('delete_note', { id: selected.id });
         assign(null);
       }
-      if (dialog === 'delete-folder') {
-        await call('delete_folder', { path: field });
-        if (base.current?.path.startsWith(`${field}/`)) assign(null);
-        if (folder === field || folder.startsWith(`${field}/`)) setFolder(pageNotebook(field));
-        setQuery('');
-        setSearchResults(null);
-      }
       closeDialog();
       await refresh();
     } catch (e) {
       setMessage(String(e));
-    } finally {
-      setDeletingFolder(false);
     }
   }
   async function attachment() {
@@ -718,7 +768,9 @@ export default function App() {
             <button
               className="icon-button"
               aria-label={account?.connected ? 'Sync now' : 'Connect Google Drive'}
-              disabled={!native || syncing || (!!account?.connected && !account.unlocked)}
+              disabled={
+                !native || syncing || deletingFolder || (!!account?.connected && !account.unlocked)
+              }
               onClick={() => (account?.connected ? void syncNow() : startDialog('settings'))}
             >
               <Cloud size={17} />
@@ -941,7 +993,7 @@ export default function App() {
               } as const
             )[dialog]
           }
-          onClose={deletingFolder ? () => {} : closeDialog}
+          onClose={deletingFolder && !waitingForFolderSync ? () => {} : closeDialog}
           wide={['conflicts', 'history'].includes(dialog)}
         >
           {['new-note', 'new-folder', 'rename', 'tags'].includes(dialog) && (
@@ -1010,21 +1062,35 @@ export default function App() {
                 You can restore the entire notebook from History &amp; trash on this device. Page
                 and attachment deletions will also sync to your connected devices.
               </p>
+              {syncing && !deletingFolder && (
+                <p>The current sync will finish before the notebook is deleted.</p>
+              )}
+              {waitingForFolderSync && (
+                <p className="notice" role="status">
+                  Waiting for the current sync to finish. You can still keep this notebook.
+                </p>
+              )}
               {message && (
                 <p className="notice" role="alert">
                   {message}
                 </p>
               )}
               <div className="button-row">
-                <button disabled={deletingFolder} onClick={closeDialog}>
+                <button disabled={deletingFolder && !waitingForFolderSync} onClick={closeDialog}>
                   Keep notebook
                 </button>
                 <button
                   className="danger-button"
-                  disabled={deletingFolder || syncing}
+                  disabled={deletingFolder}
                   onClick={() => void submitDialog()}
                 >
-                  {deletingFolder ? 'Deleting…' : 'Delete notebook'}
+                  {waitingForFolderSync
+                    ? 'Waiting for sync…'
+                    : deletingFolder
+                      ? 'Deleting…'
+                      : syncing
+                        ? 'Delete after sync'
+                        : 'Delete notebook'}
                 </button>
               </div>
             </div>

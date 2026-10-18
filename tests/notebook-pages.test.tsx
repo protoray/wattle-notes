@@ -62,7 +62,7 @@ describe('notebook grouping', () => {
 });
 
 describe('notebook/page navigation', () => {
-  it('offers deletion for subnotebooks but protects the workspace root and waits for sync', async () => {
+  it('offers deletion during sync while protecting the workspace root', async () => {
     const user = userEvent.setup();
     const callbacks = props();
     const { rerender } = render(<NotebookPages {...callbacks} />);
@@ -72,7 +72,9 @@ describe('notebook/page navigation', () => {
     rerender(<NotebookPages {...callbacks} syncing />);
     expect(
       (screen.getByRole('button', { name: 'Delete notebook Work' }) as HTMLButtonElement).disabled,
-    ).toBe(true);
+    ).toBe(false);
+    await user.click(screen.getByRole('button', { name: 'Delete notebook Work' }));
+    expect(callbacks.onDeleteNotebook).toHaveBeenCalledWith('Work');
   });
   it('expands nested notebooks using keyboard buttons and selects a page with its containing folder', async () => {
     const user = userEvent.setup();

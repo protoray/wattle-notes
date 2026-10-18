@@ -120,7 +120,7 @@ export async function prepareUpdate(tag, environment = process.env, spawn = spaw
     )
   )
     throw new Error('Unexpected updater archive entries.');
-  const notes = `Wattle Notes ${pkg.version} developer alpha. Fixes the macOS damaged-app packaging fault by explicitly ad-hoc signing the complete bundle and verifying its resource seal before packaging. Retains the SQLite, Rustls, GLib and updater security fixes. macOS may still require Privacy & Security approval because the app is not notarized by Apple. ${googleConfigured ? 'Google sign-in is built in; users can connect without creating or importing an OAuth client.' : 'Google sign-in is not preconfigured.'} Keeps existing notebook configuration and notes. Mostly vibe coded with AI assistance. Mac build remains unsigned by Apple and not notarized.`;
+  const notes = `Wattle Notes ${pkg.version} developer alpha. Allows notebook deletion during Drive sync: choose Delete after sync, cancel while waiting, and safely delete once the current pass ends. New automatic sync passes yield to the confirmed deletion; pending edits save first, and stale workspace requests are rejected. Retains the verified macOS bundle signature and dependency security fixes. ${googleConfigured ? 'Google sign-in is built in; users can connect without creating or importing an OAuth client.' : 'Google sign-in is not preconfigured.'} Keeps existing notebook configuration and notes. Mostly vibe coded with AI assistance. Mac build remains unsigned by Apple and not notarized.`;
   const manifest = updateManifest({ version: pkg.version, tag, signature, notes });
   const destination = join(root, 'release/updater', tag);
   await mkdir(destination, { recursive: true });

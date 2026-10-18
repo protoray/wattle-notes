@@ -26,6 +26,8 @@ Tombstones represent deletion without erasing history. Restoration creates anoth
 
 Notebook deletion moves the entire directory to `.notes/folder-trash/<uuid>/contents`, with an original-path descriptor written before the move. Scanning then records ordinary note/attachment tombstones. Empty directories and unindexed files remain recoverable locally; the folder archive itself is not a sync object. Restore refuses occupied paths, existing page identities and unresolved conflicts before moving the directory back and scanning new live revisions. Failed scans attempt a rollback, and interrupted moves leave the files either in their original location or in local Trash for the next scan. Folder operations use the idle-only local operation gate. Attachment tombstones invalidate cached file hashes so putting identical bytes back records a live revision.
 
+The sidebar allows confirming deletion during an active sync. The frontend waits for that pass to settle, pauses new automatic/reconnect sync starts, flushes pending edits and then requests deletion. Keep notebook, Escape or closing the confirmation cancels a waiting request; an older cancelled waiter cannot clear a newer request. The native command independently requires idle sync and the workspace root captured at confirmation, preventing a delayed request from affecting a different open workspace. A sync failure ends the wait without preventing local deletion; save or deletion errors keep the confirmation open.
+
 ## Drive layout
 
 ```text
