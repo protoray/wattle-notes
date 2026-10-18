@@ -5209,7 +5209,7 @@ dependencies = [
 
 [[package]]
 name = "wattle-notes"
-version = "0.1.9"
+version = "0.1.10"
 dependencies = [
  "argon2",
  "async-trait",

@@ -6,6 +6,7 @@ import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { releaseEnvironment } from './build-release.mjs';
+import { verifyMacBundle } from './verify-macos-bundle.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const require = createRequire(import.meta.url);
@@ -83,6 +84,7 @@ export async function prepareUpdate(tag, environment = process.env, spawn = spaw
   if (result.error || result.status !== 0)
     throw new Error('Signed update build failed. Check the toolchain and private signing key.');
   const bundle = join(root, 'src-tauri/target/release/bundle/macos');
+  verifyMacBundle(join(bundle, `${config.productName}.app`));
   const archive = join(bundle, `${config.productName}.app.tar.gz`);
   const sig = `${archive}.sig`;
   const signature = await readFile(sig, 'utf8');
@@ -118,7 +120,7 @@ export async function prepareUpdate(tag, environment = process.env, spawn = spaw
     )
   )
     throw new Error('Unexpected updater archive entries.');
-  const notes = `Wattle Notes ${pkg.version} developer alpha. Updates the embedded SQLite engine to 3.53.2 and Rustls to 0.23.46, removes unused legacy ZIP support, and backports the upstream Linux GLib iterator safety fix. Adds defensive SQLite settings and dependency security checks. ${googleConfigured ? 'Google sign-in is built in; users can connect without creating or importing an OAuth client.' : 'Google sign-in is not preconfigured.'} Keeps existing notebook configuration and notes. Mostly vibe coded with AI assistance. Mac build remains unsigned by Apple and not notarized.`;
+  const notes = `Wattle Notes ${pkg.version} developer alpha. Fixes the macOS damaged-app packaging fault by explicitly ad-hoc signing the complete bundle and verifying its resource seal before packaging. Retains the SQLite, Rustls, GLib and updater security fixes. macOS may still require Privacy & Security approval because the app is not notarized by Apple. ${googleConfigured ? 'Google sign-in is built in; users can connect without creating or importing an OAuth client.' : 'Google sign-in is not preconfigured.'} Keeps existing notebook configuration and notes. Mostly vibe coded with AI assistance. Mac build remains unsigned by Apple and not notarized.`;
   const manifest = updateManifest({ version: pkg.version, tag, signature, notes });
   const destination = join(root, 'release/updater', tag);
   await mkdir(destination, { recursive: true });

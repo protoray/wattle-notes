@@ -47,6 +47,8 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf libdbus-1-dev
       - run: npm ci
       - run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
+      - if: runner.os == 'macOS'
+        run: npm run test:launch
       - run: npm run test:core
       - if: runner.os == 'Linux'
         run: cargo test --manifest-path src-tauri/Cargo.toml --no-default-features --release --test core patched_glib_ --locked

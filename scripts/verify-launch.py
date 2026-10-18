@@ -6,6 +6,9 @@ import json
 import pathlib
 import plistlib
 import stat
+import subprocess
+import sys
+import tempfile
 import zipfile
 
 
@@ -41,7 +44,26 @@ def check_source_path(name):
         raise ValueError(f"Private, website or generated source file included: {name}")
 
 
-def verify(root, against_workspace=False):
+def verify_macos_bundle(archive):
+    # Paths/links/size were checked before extraction. Verify the actual ZIP,
+    # including its resource seal, rather than only the build-directory binary.
+    with tempfile.TemporaryDirectory(prefix="wattle-signature-check-") as folder:
+        archive.extractall(folder)
+        app = pathlib.Path(folder) / "Wattle Notes.app"
+        seal = app / "Contents/_CodeSignature/CodeResources"
+        if not seal.is_file() or seal.is_symlink():
+            raise ValueError("Mac archive has no bundle resource seal")
+        binary = app / "Contents/MacOS/wattle-notes"
+        mode = archive.getinfo("Wattle Notes.app/Contents/MacOS/wattle-notes").external_attr >> 16
+        if mode & 0o111 == 0:
+            raise ValueError("Mac archive executable permissions are missing")
+        binary.chmod(mode & 0o777)
+        result = subprocess.run(["/usr/bin/codesign", "--verify", "--deep", "--strict", str(app)], capture_output=True, text=True)
+        if result.returncode:
+            raise ValueError("Mac archive bundle signature verification failed")
+
+
+def verify(root, against_workspace=False, macos_signature=False):
     downloads = root / "release/github"
     release = json.loads((downloads / "release.json").read_text())
     checksums = (downloads / "SHA256SUMS.txt").read_text().splitlines()
@@ -57,6 +79,8 @@ def verify(root, against_workspace=False):
 
     with zipfile.ZipFile(downloads / release["mac"]["name"]) as archive:
         check_archive(archive)
+        if macos_signature:
+            verify_macos_bundle(archive)
         prefix = "Wattle Notes.app/Contents/"
         info = plistlib.loads(archive.read(prefix + "Info.plist"))
         if info["CFBundleShortVersionString"] != release["version"]:
@@ -97,7 +121,9 @@ def verify(root, against_workspace=False):
             archive.getinfo(prefix + name)
 
     print(f"Verified GitHub app/source assets, {len(manifest)} source checksums, notices and versions; website excluded.")
-    print("These checks establish artifact consistency, not code signing, cloud acceptance or public hosting.")
+    if macos_signature:
+        print("Extracted Mac ZIP bundle signature and sealed resources verified.")
+    print("These checks do not establish Apple notarization, cloud acceptance or public hosting.")
 
 
 if __name__ == "__main__":
@@ -105,6 +131,6 @@ if __name__ == "__main__":
     parser.add_argument("--against-workspace", action="store_true", help="Also compare the archive with current source and native binary")
     args = parser.parse_args()
     try:
-        verify(pathlib.Path(__file__).resolve().parent.parent, args.against_workspace)
+        verify(pathlib.Path(__file__).resolve().parent.parent, args.against_workspace, macos_signature=sys.platform == "darwin")
     except (OSError, ValueError, KeyError, zipfile.BadZipFile) as error:
         parser.exit(1, f"Launch verification failed: {error}\n")

@@ -16,6 +16,7 @@ import { dirname, join, relative, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { releaseEnvironment } from './build-release.mjs';
+import { verifyMacBundle } from './verify-macos-bundle.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 const sourceRoots = [
@@ -166,6 +167,7 @@ export async function prepareLaunch(environment = process.env) {
     ]),
   );
   const app = join(root, 'src-tauri/target/release/bundle/macos/Wattle Notes.app');
+  verifyMacBundle(app);
   const binary = join(app, 'Contents/MacOS/wattle-notes');
   const binaryInfo = await stat(binary).catch(() => {
     throw new Error('Build the macOS app first: npm run desktop:build -- --bundles app');
@@ -253,7 +255,7 @@ export async function prepareLaunch(environment = process.env) {
     await writeFile(join(githubAssets, 'release.json'), `${JSON.stringify(release, null, 2)}\n`);
     await writeFile(
       join(githubAssets, 'ALPHA-README.txt'),
-      `Wattle Notes ${pkg.version} — developer alpha\n\nMostly vibe coded with AI assistance.\nmacOS Apple Silicon only. Unsigned by Apple; not notarized.\nLocal notes work without an account. ${googlePreconfigured ? 'Google sign-in is configured; users do not need to create an OAuth client.' : 'Google sign-in is not preconfigured.'}\nCloud conflict recovery and optional Nextcloud backup still require live service acceptance testing.\nKeep independent backups and start with a test notebook.\n\nMatching source is in wattle-notes-source.zip, licensed GPL-3.0-or-later.\nSOURCE-SHA256SUMS.txt records its public source snapshot.\nSHA256SUMS.txt records both download archives.\n\nRepository: ${links.repositoryUrl}\nPublish these files as assets of a GitHub pre-release. Preparing them does not upload, tag or publish anything.\nDo not imply this is an Apple-signed or notarized release.\n\nSee the getting-started, privacy and terms pages at ${links.homepage}\n`,
+      `Wattle Notes ${pkg.version} — developer alpha\n\nMostly vibe coded with AI assistance.\nmacOS Apple Silicon only. Bundle is ad-hoc signed; not Apple Developer ID signed or notarized.\nmacOS may require System Settings > Privacy & Security > Open Anyway.\nLocal notes work without an account. ${googlePreconfigured ? 'Google sign-in is configured; users do not need to create an OAuth client.' : 'Google sign-in is not preconfigured.'}\nCloud conflict recovery and optional Nextcloud backup still require live service acceptance testing.\nKeep independent backups and start with a test notebook.\n\nMatching source is in wattle-notes-source.zip, licensed GPL-3.0-or-later.\nSOURCE-SHA256SUMS.txt records its public source snapshot.\nSHA256SUMS.txt records both download archives.\n\nRepository: ${links.repositoryUrl}\nPublish these files as assets of a GitHub pre-release. Preparing them does not upload, tag or publish anything.\nDo not imply this is an Apple-signed or notarized release.\n\nSee the getting-started, privacy and terms pages at ${links.homepage}\n`,
     );
     console.log(
       `GitHub release assets: ${relative(root, githubAssets)}/\nVersion ${pkg.version}; ${manifest.length} public app source files; app/source checksums verified. Website files were not read, changed or packaged.`,
