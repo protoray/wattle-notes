@@ -11,13 +11,11 @@ Bundled SQLite is public domain; libsqlite3-sys and rusqlite have their own wrap
 | cargo | adler2 2.0.1 | 0BSD OR MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-adler2-2.0.1.txt) |
 | cargo | aead 0.5.2 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-aead-0.5.2.txt) |
 | cargo | aes 0.8.4 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-aes-0.8.4.txt) |
-| cargo | ahash 0.8.12 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-ahash-0.8.12.txt) |
 | cargo | aho-corasick 1.1.5 | Unlicense OR MIT | [License text](docs/dependency-licenses/cargo-aho-corasick-1.1.5.txt) |
 | cargo | alloc-no-stdlib 3.0.0 | BSD-3-Clause | [License text](docs/dependency-licenses/cargo-alloc-no-stdlib-3.0.0.txt) |
 | cargo | alloc-stdlib 0.3.0 | BSD-3-Clause | Package source |
 | cargo | android_system_properties 0.1.6 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-android_system_properties-0.1.6.txt) |
 | cargo | anyhow 1.0.104 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-anyhow-1.0.104.txt) |
-| cargo | arbitrary 1.5.0 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-arbitrary-1.5.0.txt) |
 | cargo | argon2 0.5.3 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-argon2-0.5.3.txt) |
 | cargo | async-broadcast 0.7.2 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-async-broadcast-0.7.2.txt) |
 | cargo | async-channel 2.5.0 | Apache-2.0 OR MIT | [License text](docs/dependency-licenses/cargo-async-channel-2.5.0.txt) |
@@ -96,7 +94,6 @@ Bundled SQLite is public domain; libsqlite3-sys and rusqlite have their own wrap
 | cargo | defmt-parser 1.0.0 | MIT OR Apache-2.0 | Package source |
 | cargo | defmt 1.1.1 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-defmt-1.1.1.txt) |
 | cargo | deranged 0.5.8 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-deranged-0.5.8.txt) |
-| cargo | derive_arbitrary 1.5.0 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-derive_arbitrary-1.5.0.txt) |
 | cargo | derive_more-impl 2.1.1 | MIT | [License text](docs/dependency-licenses/cargo-derive_more-impl-2.1.1.txt) |
 | cargo | derive_more 2.1.1 | MIT | [License text](docs/dependency-licenses/cargo-derive_more-2.1.1.txt) |
 | cargo | diffy 0.4.2 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-diffy-0.4.2.txt) |
@@ -169,9 +166,8 @@ Bundled SQLite is public domain; libsqlite3-sys and rusqlite have their own wrap
 | cargo | gtk 0.18.2 | MIT | [License text](docs/dependency-licenses/cargo-gtk-0.18.2.txt) |
 | cargo | gtk3-macros 0.18.2 | MIT | [License text](docs/dependency-licenses/cargo-gtk3-macros-0.18.2.txt) |
 | cargo | hashbrown 0.12.3 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-hashbrown-0.12.3.txt) |
-| cargo | hashbrown 0.14.5 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-hashbrown-0.14.5.txt) |
 | cargo | hashbrown 0.17.1 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-hashbrown-0.17.1.txt) |
-| cargo | hashlink 0.9.1 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-hashlink-0.9.1.txt) |
+| cargo | hashlink 0.12.2 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-hashlink-0.12.2.txt) |
 | cargo | heck 0.4.1 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-heck-0.4.1.txt) |
 | cargo | heck 0.5.0 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-heck-0.5.0.txt) |
 | cargo | hermit-abi 0.5.3 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-hermit-abi-0.5.3.txt) |
@@ -231,7 +227,7 @@ Bundled SQLite is public domain; libsqlite3-sys and rusqlite have their own wrap
 | cargo | libdbus-sys 0.2.7 | Apache-2.0/MIT | [License text](docs/dependency-licenses/cargo-libdbus-sys-0.2.7.txt) |
 | cargo | libloading 0.7.4 | ISC | [License text](docs/dependency-licenses/cargo-libloading-0.7.4.txt) |
 | cargo | libredox 0.1.25 | MIT | [License text](docs/dependency-licenses/cargo-libredox-0.1.25.txt) |
-| cargo | libsqlite3-sys 0.30.1 | MIT | [License text](docs/dependency-licenses/cargo-libsqlite3-sys-0.30.1.txt) |
+| cargo | libsqlite3-sys 0.38.2 | MIT | [License text](docs/dependency-licenses/cargo-libsqlite3-sys-0.38.2.txt) |
 | cargo | linux-raw-sys 0.12.1 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | [License text](docs/dependency-licenses/cargo-linux-raw-sys-0.12.1.txt) |
 | cargo | litemap 0.8.3 | Unicode-3.0 | [License text](docs/dependency-licenses/cargo-litemap-0.8.3.txt) |
 | cargo | lock_api 0.4.14 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-lock_api-0.4.14.txt) |
@@ -344,7 +340,7 @@ Bundled SQLite is public domain; libsqlite3-sys and rusqlite have their own wrap
 | cargo | reqwest 0.13.5 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-reqwest-0.13.5.txt) |
 | cargo | rfd 0.16.0 | MIT | [License text](docs/dependency-licenses/cargo-rfd-0.16.0.txt) |
 | cargo | ring 0.17.14 | Apache-2.0 AND ISC | [License text](docs/dependency-licenses/cargo-ring-0.17.14.txt) |
-| cargo | rusqlite 0.32.1 | MIT | [License text](docs/dependency-licenses/cargo-rusqlite-0.32.1.txt) |
+| cargo | rusqlite 0.40.2 | MIT | [License text](docs/dependency-licenses/cargo-rusqlite-0.40.2.txt) |
 | cargo | rustc_version 0.4.1 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-rustc_version-0.4.1.txt) |
 | cargo | rustc-hash 2.1.3 | Apache-2.0 OR MIT | [License text](docs/dependency-licenses/cargo-rustc-hash-2.1.3.txt) |
 | cargo | rustix 1.1.5 | Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT | [License text](docs/dependency-licenses/cargo-rustix-1.1.5.txt) |
@@ -353,7 +349,7 @@ Bundled SQLite is public domain; libsqlite3-sys and rusqlite have their own wrap
 | cargo | rustls-platform-verifier-android 0.2.0 | MIT OR Apache-2.0 | Package source |
 | cargo | rustls-platform-verifier 0.7.1 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-rustls-platform-verifier-0.7.1.txt) |
 | cargo | rustls-webpki 0.103.15 | ISC | [License text](docs/dependency-licenses/cargo-rustls-webpki-0.103.15.txt) |
-| cargo | rustls 0.23.45 | Apache-2.0 OR ISC OR MIT | [License text](docs/dependency-licenses/cargo-rustls-0.23.45.txt) |
+| cargo | rustls 0.23.46 | Apache-2.0 OR ISC OR MIT | [License text](docs/dependency-licenses/cargo-rustls-0.23.46.txt) |
 | cargo | rustversion 1.0.23 | MIT OR Apache-2.0 | [License text](docs/dependency-licenses/cargo-rustversion-1.0.23.txt) |
 | cargo | ryu 1.0.23 | Apache-2.0 OR BSL-1.0 | [License text](docs/dependency-licenses/cargo-ryu-1.0.23.txt) |
 | cargo | same-file 1.0.6 | Unlicense/MIT | [License text](docs/dependency-licenses/cargo-same-file-1.0.6.txt) |
@@ -575,7 +571,6 @@ Bundled SQLite is public domain; libsqlite3-sys and rusqlite have their own wrap
 | cargo | zerotrie 0.2.5 | Unicode-3.0 | [License text](docs/dependency-licenses/cargo-zerotrie-0.2.5.txt) |
 | cargo | zerovec-derive 0.11.6 | Unicode-3.0 | [License text](docs/dependency-licenses/cargo-zerovec-derive-0.11.6.txt) |
 | cargo | zerovec 0.11.8 | Unicode-3.0 | [License text](docs/dependency-licenses/cargo-zerovec-0.11.8.txt) |
-| cargo | zip 4.6.1 | MIT | [License text](docs/dependency-licenses/cargo-zip-4.6.1.txt) |
 | cargo | zlib-rs 0.6.8 | Zlib | [License text](docs/dependency-licenses/cargo-zlib-rs-0.6.8.txt) |
 | cargo | zmij 1.0.23 | MIT | [License text](docs/dependency-licenses/cargo-zmij-1.0.23.txt) |
 | cargo | zvariant_derive 4.2.0 | MIT | [License text](docs/dependency-licenses/cargo-zvariant_derive-4.2.0.txt) |

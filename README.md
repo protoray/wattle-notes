@@ -63,6 +63,7 @@ npm test                  # Frontend behavior and preview security tests
 npm run test:core         # Rust storage, encryption, and multi-device sync tests
 npm run test:desktop      # Native notebook-switch and transport module tests
 npm run check:core        # Strict Rust linting
+npm run check:security    # Patched dependency minimums and GLib backport integrity
 npm run desktop:build     # Native release and platform installers
 npm run desktop:release   # Configured distribution; requires GOOGLE_CLIENT_ID
 npx playwright install chromium

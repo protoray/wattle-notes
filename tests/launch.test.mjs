@@ -1,6 +1,31 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { googleBuildConfigured, publicLink, publicSourcePath } from '../scripts/prepare-launch.mjs';
+import {
+  collectPublicSourceFiles,
+  googleBuildConfigured,
+  publicLink,
+  publicSourcePath,
+} from '../scripts/prepare-launch.mjs';
+
+test('standalone source contains the GLib backport and license without local project or website files', async () => {
+  const files = await collectPublicSourceFiles();
+  for (const path of [
+    'src-tauri/vendor/glib/Cargo.toml',
+    'src-tauri/vendor/glib/src/variant_iter.rs',
+    'src-tauri/vendor/glib/LICENSE',
+    'src-tauri/vendor/glib/SECURITY-PATCH.md',
+  ])
+    assert.ok(files.includes(path), path);
+  assert.ok(files.every(publicSourcePath));
+  assert.ok(
+    !files.some(
+      (path) =>
+        path.startsWith('website/') ||
+        path.includes('CURRENT_STATE.md') ||
+        path.includes('AGENTS.md'),
+    ),
+  );
+});
 
 test('public source snapshots exclude handoff, local preferences, credentials, notes and caches', () => {
   for (const path of [

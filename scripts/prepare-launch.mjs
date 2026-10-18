@@ -21,6 +21,7 @@ const root = fileURLToPath(new URL('..', import.meta.url));
 const sourceRoots = [
   'src',
   'src-tauri/src',
+  'src-tauri/vendor',
   'src-tauri/examples',
   'src-tauri/icons',
   'src-tauri/capabilities',
@@ -109,6 +110,11 @@ async function filesUnder(path) {
   if (!info.isFile()) throw new Error(`Unsupported public source entry: ${path}`);
   return [path];
 }
+export async function collectPublicSourceFiles() {
+  const sources = [...sourceFiles];
+  for (const path of sourceRoots) sources.push(...(await filesUnder(path)));
+  return [...new Set(sources)].sort().filter(publicSourcePath);
+}
 function run(command, args) {
   const result = spawnSync(command, args, { cwd: root, stdio: 'inherit', shell: false });
   if (result.error || result.status !== 0)
@@ -173,6 +179,7 @@ export async function prepareLaunch(environment = process.env) {
   const appInputs = [
     'src',
     'src-tauri/src',
+    'src-tauri/vendor',
     'src-tauri/icons',
     'src-tauri/capabilities',
     'src-tauri/build.rs',
@@ -198,11 +205,9 @@ export async function prepareLaunch(environment = process.env) {
   const snapshot = await mkdtemp(join(tmpdir(), 'wattle-launch-source-'));
   try {
     const folder = `wattle-notes-${pkg.version}-source`;
-    const sources = [...sourceFiles];
-    for (const path of sourceRoots) sources.push(...(await filesUnder(path)));
+    const sources = await collectPublicSourceFiles();
     const manifest = [];
-    for (const path of [...new Set(sources)].sort()) {
-      if (!publicSourcePath(path)) continue;
+    for (const path of sources) {
       const target = join(snapshot, folder, path);
       await mkdir(dirname(target), { recursive: true });
       await cp(join(root, path), target, { dereference: false });

@@ -25,14 +25,6 @@
   },
   {
     "ecosystem": "cargo",
-    "name": "ahash",
-    "version": "0.8.12",
-    "license": "MIT OR Apache-2.0",
-    "development": false,
-    "notice": "docs/dependency-licenses/cargo-ahash-0.8.12.txt"
-  },
-  {
-    "ecosystem": "cargo",
     "name": "aho-corasick",
     "version": "1.1.5",
     "license": "Unlicense OR MIT",
@@ -70,14 +62,6 @@
     "license": "MIT OR Apache-2.0",
     "development": false,
     "notice": "docs/dependency-licenses/cargo-anyhow-1.0.104.txt"
-  },
-  {
-    "ecosystem": "cargo",
-    "name": "arbitrary",
-    "version": "1.5.0",
-    "license": "MIT OR Apache-2.0",
-    "development": false,
-    "notice": "docs/dependency-licenses/cargo-arbitrary-1.5.0.txt"
   },
   {
     "ecosystem": "cargo",
@@ -705,14 +689,6 @@
   },
   {
     "ecosystem": "cargo",
-    "name": "derive_arbitrary",
-    "version": "1.5.0",
-    "license": "MIT OR Apache-2.0",
-    "development": false,
-    "notice": "docs/dependency-licenses/cargo-derive_arbitrary-1.5.0.txt"
-  },
-  {
-    "ecosystem": "cargo",
     "name": "derive_more-impl",
     "version": "2.1.1",
     "license": "MIT",
@@ -1290,14 +1266,6 @@
   {
     "ecosystem": "cargo",
     "name": "hashbrown",
-    "version": "0.14.5",
-    "license": "MIT OR Apache-2.0",
-    "development": false,
-    "notice": "docs/dependency-licenses/cargo-hashbrown-0.14.5.txt"
-  },
-  {
-    "ecosystem": "cargo",
-    "name": "hashbrown",
     "version": "0.17.1",
     "license": "MIT OR Apache-2.0",
     "development": false,
@@ -1306,10 +1274,10 @@
   {
     "ecosystem": "cargo",
     "name": "hashlink",
-    "version": "0.9.1",
+    "version": "0.12.2",
     "license": "MIT OR Apache-2.0",
     "development": false,
-    "notice": "docs/dependency-licenses/cargo-hashlink-0.9.1.txt"
+    "notice": "docs/dependency-licenses/cargo-hashlink-0.12.2.txt"
   },
   {
     "ecosystem": "cargo",
@@ -1786,10 +1754,10 @@
   {
     "ecosystem": "cargo",
     "name": "libsqlite3-sys",
-    "version": "0.30.1",
+    "version": "0.38.2",
     "license": "MIT",
     "development": false,
-    "notice": "docs/dependency-licenses/cargo-libsqlite3-sys-0.30.1.txt"
+    "notice": "docs/dependency-licenses/cargo-libsqlite3-sys-0.38.2.txt"
   },
   {
     "ecosystem": "cargo",
@@ -2690,10 +2658,10 @@
   {
     "ecosystem": "cargo",
     "name": "rusqlite",
-    "version": "0.32.1",
+    "version": "0.40.2",
     "license": "MIT",
     "development": false,
-    "notice": "docs/dependency-licenses/cargo-rusqlite-0.32.1.txt"
+    "notice": "docs/dependency-licenses/cargo-rusqlite-0.40.2.txt"
   },
   {
     "ecosystem": "cargo",
@@ -2762,10 +2730,10 @@
   {
     "ecosystem": "cargo",
     "name": "rustls",
-    "version": "0.23.45",
+    "version": "0.23.46",
     "license": "Apache-2.0 OR ISC OR MIT",
     "development": false,
-    "notice": "docs/dependency-licenses/cargo-rustls-0.23.45.txt"
+    "notice": "docs/dependency-licenses/cargo-rustls-0.23.46.txt"
   },
   {
     "ecosystem": "cargo",
@@ -4534,14 +4502,6 @@
     "license": "Unicode-3.0",
     "development": false,
     "notice": "docs/dependency-licenses/cargo-zerovec-0.11.8.txt"
-  },
-  {
-    "ecosystem": "cargo",
-    "name": "zip",
-    "version": "4.6.1",
-    "license": "MIT",
-    "development": false,
-    "notice": "docs/dependency-licenses/cargo-zip-4.6.1.txt"
   },
   {
     "ecosystem": "cargo",

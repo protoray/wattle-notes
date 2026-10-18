@@ -12,6 +12,7 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - run: npm run check:security
       - run: npm run lint
       - run: npm test
       - run: npm run test:launch
@@ -47,6 +48,8 @@ jobs:
       - run: npm ci
       - run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
       - run: npm run test:core
+      - if: runner.os == 'Linux'
+        run: cargo test --manifest-path src-tauri/Cargo.toml --no-default-features --release --test core patched_glib_ --locked
       - run: npm run build
       - run: npm run test:desktop
       - run: npm run check:desktop

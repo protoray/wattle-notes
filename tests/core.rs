@@ -29,6 +29,96 @@ fn vault() -> (TempDir, Vault) {
 }
 
 #[test]
+fn patched_sqlite_protects_notebook_schema_and_keeps_search_working() {
+    let (_dir, mut v) = vault();
+    assert!(
+        rusqlite::version_number() >= 3_053_002,
+        "SQLite {} is older than the security baseline",
+        rusqlite::version()
+    );
+    assert!(v
+        .db
+        .db_config(rusqlite::config::DbConfig::SQLITE_DBCONFIG_DEFENSIVE)
+        .unwrap());
+    assert!(!v
+        .db
+        .db_config(rusqlite::config::DbConfig::SQLITE_DBCONFIG_TRUSTED_SCHEMA)
+        .unwrap());
+    let note = v.create_note("Security.md").unwrap();
+    v.save_note(&note.id, "# Security\n\nneedle_73647", &note.hash)
+        .unwrap();
+    assert_eq!(v.search("needle_73647").unwrap().len(), 1);
+    assert!(v
+        .db
+        .execute_batch("PRAGMA writable_schema=ON; DELETE FROM sqlite_schema WHERE name='notes';")
+        .is_err());
+    assert_eq!(v.notes().unwrap().len(), 1);
+    assert_eq!(v.search("needle_73647").unwrap().len(), 1);
+}
+
+#[test]
+fn patched_sqlite_opens_a_legacy_346_index_without_losing_notebook_data() {
+    let dir = TempDir::new().unwrap();
+    fs::create_dir(dir.path().join(".notes")).unwrap();
+    let index = dir.path().join(".notes/index.db");
+    fs::write(&index, include_bytes!("fixtures/legacy-sqlite346.bin")).unwrap();
+    let old = rusqlite::Connection::open(&index).unwrap();
+    let content: String = old
+        .query_row("SELECT content FROM notes", [], |row| row.get(0))
+        .unwrap();
+    drop(old);
+    fs::write(dir.path().join("Legacy.md"), &content).unwrap();
+    let mut v = Vault::open(dir.path()).unwrap();
+    let id = "93a55693-322f-4fd8-9859-fa54007657cb";
+    let note = v.note(id).unwrap();
+    assert!(note.content.contains("custom: preserved"));
+    assert_eq!(note.tags, ["legacy"]);
+    assert_eq!(
+        v.get_state("security_fixture").unwrap().as_deref(),
+        Some("legacy-state-preserved")
+    );
+    assert!(v
+        .revisions(Some(id))
+        .unwrap()
+        .iter()
+        .any(
+            |revision| revision.id == "349af5dc-60ab-46bc-b03e-92fafca284cf"
+                && revision.content.as_deref() == Some(content.as_str())
+        ));
+    assert_eq!(v.search("aardvark").unwrap()[0].id, id);
+    let saved = v
+        .save_note(id, &(note.content + "\nPatched engine edit.\n"), &note.hash)
+        .unwrap();
+    drop(v);
+    let v = Vault::open(dir.path()).unwrap();
+    assert_eq!(v.note(id).unwrap().content, saved.content);
+    assert_eq!(v.search("Patched").unwrap()[0].id, id);
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn patched_glib_string_iterators_preserve_values_in_both_directions() {
+    use glib::variant::ToVariant;
+    let variant = ["alpha", "日本語", "omega"].to_variant();
+    let strings = || variant.array_iter_str().unwrap();
+    assert_eq!(strings().collect::<Vec<_>>(), ["alpha", "日本語", "omega"]);
+    assert_eq!(
+        strings().rev().collect::<Vec<_>>(),
+        ["omega", "日本語", "alpha"]
+    );
+    assert_eq!(strings().nth(1), Some("日本語"));
+    assert_eq!(strings().nth_back(1), Some("日本語"));
+    assert_eq!(strings().last(), Some("omega"));
+    let mut ends = strings();
+    assert_eq!(ends.next(), Some("alpha"));
+    assert_eq!(ends.next_back(), Some("omega"));
+    assert_eq!(ends.next(), Some("日本語"));
+    assert_eq!(ends.next_back(), None);
+    let empty = Vec::<String>::new().to_variant();
+    assert_eq!(empty.array_iter_str().unwrap().next(), None);
+}
+
+#[test]
 fn notebook_trash_preserves_nested_pages_files_and_empty_folders_after_restart() {
     let (dir, mut v) = vault();
     let page = v.create_note("Work/Plans/Page.md").unwrap();

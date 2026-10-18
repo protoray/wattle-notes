@@ -139,6 +139,13 @@ impl Vault {
             }
         }
         let db = Connection::open(db_path)?;
+        // Notebook metadata can arrive in an existing folder. Do not trust
+        // schema-defined code or allow SQL to rewrite SQLite's own structures.
+        db.set_db_config(rusqlite::config::DbConfig::SQLITE_DBCONFIG_DEFENSIVE, true)?;
+        db.set_db_config(
+            rusqlite::config::DbConfig::SQLITE_DBCONFIG_TRUSTED_SCHEMA,
+            false,
+        )?;
         db.busy_timeout(std::time::Duration::from_secs(5))?;
         db.execute_batch("PRAGMA journal_mode=WAL;
           CREATE TABLE IF NOT EXISTS notes(id TEXT PRIMARY KEY, path TEXT UNIQUE COLLATE NOCASE, content TEXT NOT NULL, hash TEXT NOT NULL, modified INTEGER NOT NULL);

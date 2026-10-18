@@ -1,6 +1,6 @@
 {
   "name": "wattle-notes",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "private": true,
   "license": "GPL-3.0-or-later",
   "type": "module",
@@ -12,7 +12,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint . && tsc -b",
     "format": "prettier --write src tests scripts *.json *.ts *.js docs README.md CONTRIBUTING.md",
-    "test": "vitest run && node --test tests/release.test.mjs tests/launch.test.mjs tests/updates.test.mjs",
+    "test": "vitest run && node --test tests/release.test.mjs tests/launch.test.mjs tests/updates.test.mjs tests/security.test.mjs",
+    "check:security": "node scripts/check-security-baseline.mjs",
     "test:core": "cargo test --manifest-path src-tauri/Cargo.toml --no-default-features --locked",
     "test:desktop": "cargo test --manifest-path src-tauri/Cargo.toml --lib --locked",
     "check:core": "cargo clippy --manifest-path src-tauri/Cargo.toml --no-default-features --locked -- -D warnings",

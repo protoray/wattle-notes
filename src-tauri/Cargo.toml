@@ -1,6 +1,6 @@
 [package]
 name = "wattle-notes"
-version = "0.1.8"
+version = "0.1.9"
 edition = "2021"
 license = "GPL-3.0-or-later"
 description = "Offline Markdown notes with encrypted Google Drive sync"
@@ -35,7 +35,7 @@ open = "5"
 quick-xml = "0.42"
 rand = "0.8"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "stream"] }
-rusqlite = { version = "0.32", features = ["bundled"] }
+rusqlite = { version = "0.40.2", default-features = false, features = ["bundled", "cache", "fallible_uint"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"
@@ -50,11 +50,21 @@ uuid = { version = "1", features = ["v4", "v5", "serde"] }
 walkdir = "2"
 zeroize = { version = "1", features = ["derive"] }
 tempfile = "3"
-tauri-plugin-updater = { version = "2", optional = true }
+# ZIP is only for legacy Tauri v1 Windows bundles. Keep native v2/macOS
+# updates, TLS and proxy support without the vulnerable ZIP dependency.
+tauri-plugin-updater = { version = "2", optional = true, default-features = false, features = ["rustls-tls", "system-proxy"] }
 
 [dev-dependencies]
 minisign-verify = "0.3"
 tempfile = "3"
+
+[target.'cfg(target_os = "linux")'.dev-dependencies]
+glib = "0.18"
+
+[patch.crates-io]
+# Tauri's GTK3 stack requires 0.18; backport the upstream safety fix rather
+# than replacing it with an API-incompatible GLib 0.20 dependency.
+glib = { path = "vendor/glib" }
 
 [[test]]
 name = "core"
