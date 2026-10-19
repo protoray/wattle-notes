@@ -2,6 +2,12 @@
 
 Executed on the development Mac (Apple Silicon), using Node.js 26.10.0 and an isolated Rust 1.99.0 toolchain. Build/test caches were kept out of source control.
 
+## 19 October: configured Linux and Windows build paths
+
+Both ordinary native build commands now require Google Desktop client configuration before compiling. Synthetic regression tests cover explicit environment precedence, ignored local/VM JSON loading, missing/malformed/web/service-account JSON rejection, parameter redaction, CLI preflight and native executables with absent or mismatched client parameters. The main-only manual Linux/Windows packaging workflow validates configuration and compiled parameters before uploading installer artifacts; ordinary PR checks remain unconfigured and never receive the repository client secrets.
+
+Passed 105 frontend tests, 20 Node checks, nine archive verifier checks, lint/TypeScript, frontend production build, formatting/diff checks and actionlint 1.7.12 validation of both workflows. Existing maintainer configuration passes preflight and the existing Mac executable passes the new client-parameter check. The public source allowlist excludes local client JSON, actual client parameter values, continuity files and website paths. No native source changed; Rust/browser suites were not rerun. Linux/Windows installers and live sign-in/restart/restore acceptance remain pending; no new app release is established by these checks.
+
 ## 18 October: notebook deletion during sync
 
 The sidebar trash button remains usable during a Drive pass. Confirmed deletion waits for that pass, takes priority over another automatic/reconnect sync and can be cancelled before local deletion begins. Regression checks cover Keep notebook, close and Escape cancellation, replacing a cancelled wait, saving pending text, failed sync, and a changed workspace. Native tests independently reject mutation during sync and a stale workspace root. Existing whole-folder trash and restore behavior remains intact.

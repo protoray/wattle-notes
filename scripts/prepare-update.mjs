@@ -5,7 +5,8 @@ import { homedir } from 'node:os';
 import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { releaseEnvironment } from './build-release.mjs';
+import { loadReleaseEnvironment } from './build-release.mjs';
+import { verifyGoogleBuild } from './verify-google-build.mjs';
 import { verifyMacBundle } from './verify-macos-bundle.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
@@ -54,11 +55,8 @@ export async function prepareUpdate(tag, environment = process.env, spawn = spaw
     throw new Error(`Pass a matching release tag, for example ${validateTag}1.`);
   const privateKey =
     environment.TAURI_SIGNING_PRIVATE_KEY || join(homedir(), '.tauri/wattle-notes-updater.key');
-  const googleConfigured = !!environment.GOOGLE_CLIENT_ID?.trim();
-  const buildEnvironment =
-    googleConfigured || environment.GOOGLE_CLIENT_SECRET
-      ? releaseEnvironment(environment)
-      : environment;
+  const buildEnvironment = loadReleaseEnvironment(environment);
+  const googleConfigured = true;
   const env = {
     ...buildEnvironment,
     TAURI_SIGNING_PRIVATE_KEY: privateKey,
@@ -85,6 +83,10 @@ export async function prepareUpdate(tag, environment = process.env, spawn = spaw
     throw new Error('Signed update build failed. Check the toolchain and private signing key.');
   const bundle = join(root, 'src-tauri/target/release/bundle/macos');
   verifyMacBundle(join(bundle, `${config.productName}.app`));
+  verifyGoogleBuild(
+    await readFile(join(bundle, `${config.productName}.app/Contents/MacOS/wattle-notes`)),
+    buildEnvironment,
+  );
   const archive = join(bundle, `${config.productName}.app.tar.gz`);
   const sig = `${archive}.sig`;
   const signature = await readFile(sig, 'utf8');

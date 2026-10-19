@@ -15,7 +15,8 @@ import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { releaseEnvironment } from './build-release.mjs';
+import { loadReleaseEnvironment, releaseEnvironment } from './build-release.mjs';
+import { verifyGoogleBuild } from './verify-google-build.mjs';
 import { verifyMacBundle } from './verify-macos-bundle.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
@@ -140,6 +141,7 @@ export function googleBuildConfigured(binary, environment = process.env) {
     throw new Error(
       'The Mac bundle does not contain the configured Google client. Rebuild it with the same client before packaging.',
     );
+  verifyGoogleBuild(binary, checked);
   return true;
 }
 
@@ -148,6 +150,7 @@ export async function prepareLaunch(environment = process.env) {
     throw new Error(
       'This release packager currently packages the verified Apple Silicon macOS build. Run on macOS with a matching native build.',
     );
+  environment = loadReleaseEnvironment(environment);
   const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
   const tauri = JSON.parse(await readFile(join(root, 'src-tauri/tauri.conf.json'), 'utf8'));
   const cargo = await readFile(join(root, 'src-tauri/Cargo.toml'), 'utf8');

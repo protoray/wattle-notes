@@ -42,7 +42,7 @@ Updater-enabled builds check GitHub for new alpha releases at startup. In Settin
 
 In a configured build, select **Sign in with Google**, approve access in your normal browser, then set up a vault passphrase and save the generated recovery key separately. Users do not create OAuth clients or import JSON. See [Google Drive setup](docs/google-drive.md) for the maintainer's build configuration and development setup.
 
-The app requests only `drive.file`. Refresh tokens and optionally remembered encryption keys use the OS credential store. The maintainer supplies the Desktop client at build time using `npm run desktop:release`; this command refuses a missing or malformed client ID. Google consent-screen preparation is a release requirement.
+The app requests only `drive.file`. Refresh tokens and optionally remembered encryption keys use the OS credential store. Both `npm run desktop:build` and `npm run desktop:release` require the maintainer's Desktop client at build time; they refuse a missing or malformed configuration on every platform. See [configured builds](docs/google-drive.md#maintainer-configure-a-distribution), including local VM setup. Google consent-screen preparation is a release requirement.
 
 For another device: use the same configured app, open an empty local folder, connect Google, choose **Find my vaults**, enter the vault passphrase or recovery key, then sync. The encrypted history is sufficient to reconstruct notes, attachments, and unresolved conflicts.
 
@@ -64,8 +64,10 @@ npm run test:core         # Rust storage, encryption, and multi-device sync test
 npm run test:desktop      # Native notebook-switch and transport module tests
 npm run check:core        # Strict Rust linting
 npm run check:security    # Patched dependency minimums and GLib backport integrity
-npm run desktop:build     # Native release and platform installers
-npm run desktop:release   # Configured distribution; requires GOOGLE_CLIENT_ID
+npm run desktop:check-config # Check Google build configuration without compiling
+npm run desktop:build     # Configured native release and platform installers
+npm run desktop:release   # Same configured release build
+npm run desktop:build:local # Explicit local-only build without required Google configuration
 npx playwright install chromium
 npm run test:e2e          # Browser-preview interaction tests
 ```
