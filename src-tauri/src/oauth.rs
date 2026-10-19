@@ -150,6 +150,7 @@ async fn token_request(fields: &[(&str, String)]) -> Result<Tokens> {
 }
 
 pub fn credential(name: &str) -> Result<keyring::Entry> {
+    // Stable credential service from earlier releases; renaming requires migration.
     keyring::Entry::new("org.newnotes.desktop", name)
         .map_err(|_| fail("Operating-system credential storage is unavailable"))
 }

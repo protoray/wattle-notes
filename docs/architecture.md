@@ -6,7 +6,15 @@ The React interface calls narrow Tauri commands. Rust owns local files, SQLite, 
 
 The chosen folder is the file boundary. Notes are UTF-8 `.md` files. Attachments are ordinary files; imported ones use `attachments/`. `new_notes_id` identifies a note independently of its path. The `.notes/` directory contains the SQLite index/queue, write journal, local immutable revision snapshots, retained attachment blobs, encryption configuration, and temporary encrypted transfers. These internal files are not included in ordinary Markdown exports or mirrored to Drive.
 
-The application was renamed from New Notes to Wattle Notes. The legacy `new_notes_id` frontmatter field, `org.newnotes.desktop` application/credential identifier, and `new-notes-theme` preference key remain stable for compatibility with existing vaults, saved credentials, and preferences. Existing app-managed Drive folders retain their names; newly created roots use `Wattle Notes - <vault name>`. Remote discovery uses stable object properties rather than the displayed folder name.
+The application was renamed from New Notes to Wattle Notes. The remaining old names are persisted compatibility identifiers:
+
+| Identifier                                | Why it is retained                                                                                                                                                            |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `new_notes_id`                            | Stable identity in existing Markdown and synced revisions; older clients must still recognize the same note.                                                                  |
+| `org.newnotes.desktop`                    | Existing app configuration/webview storage and OS credential service; changing it requires a migration that preserves settings, connections and installation/update identity. |
+| `new-notes-theme` and light/dark variants | Existing saved appearance preferences.                                                                                                                                        |
+
+New builds keep these identifiers unchanged. Do not replace them manually in Markdown, credential stores or release configuration. A future identity migration needs compatibility across mixed app versions, preservation of the same note IDs, and upgrade/credential tests on all platforms. Existing app-managed Drive folders retain their names; newly created roots use `Wattle Notes - <vault name>`. Remote discovery uses stable object properties rather than the displayed folder name.
 
 External files are scanned every three seconds while the UI is open. Note saves include an expected content hash. Conflicting external content and the editor draft become separate revisions. Pending writes are replayed after a crash only when the destination still matches the expected content; otherwise both versions are retained.
 

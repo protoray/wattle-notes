@@ -36,7 +36,9 @@ Choose an empty folder or an existing Markdown folder. Opening a folder assigns 
 
 ## App updates
 
-Updater-enabled builds check GitHub for new alpha releases at startup. In Settings & tools → Settings → App updates you can check manually or disable startup checks. Choose Install update and restart when ready; the app verifies the download and saves your note before installation. Existing 0.1.1 installations need one manual upgrade to enable this. See [update signing and release instructions](docs/updates.md).
+macOS Apple Silicon builds check GitHub for new alpha releases at startup. In Settings & tools → Settings → App updates you can check manually or disable startup checks. Choose Install update and restart when ready; the app verifies the download and saves your note before installation. Existing 0.1.1 installations need one manual upgrade to enable this. Linux x64 DEB and Windows x64 EXE/MSI downloads are provided on [GitHub Releases](https://github.com/protoray/wattle-notes/releases); update those installations manually while their signed updater channels remain unconfigured. See [update signing and release instructions](docs/updates.md).
+
+The application is named **Wattle Notes**. Existing `new_notes_id` Markdown fields and the internal `org.newnotes.desktop` app/credential identifier are retained compatibility identifiers, rather than the displayed app name. Renaming them without a migration could break note identity, saved settings and credentials. Keep those fields intact; see [compatibility details](docs/architecture.md#local-vault).
 
 ## Connect Google Drive
 

@@ -41,6 +41,8 @@ pub fn frontmatter(content: &str) -> Result<(Mapping, String)> {
     Ok((Mapping::new(), normalized))
 }
 
+// Persisted compatibility field, shared with older releases and cloud history.
+// Changing the product name must not change note identity or mixed-version sync.
 pub fn with_identity(content: &str, id: &str) -> Result<String> {
     let (mut meta, body) = frontmatter(content)?;
     meta.insert(
