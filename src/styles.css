@@ -258,6 +258,9 @@ a {
   user-select: none !important;
   cursor: col-resize !important;
 }
+.app-shell.sidebar-resizing {
+  grid-template-columns: var(--sidebar-width, 320px) minmax(0, 1fr) !important;
+}
 .sidebar {
   position: relative;
   background: var(--sidebar);
@@ -1564,7 +1567,7 @@ kbd {
 }
 @media (max-width: 1200px) {
   .app-shell {
-    grid-template-columns: min(var(--sidebar-width, 290px), 290px) minmax(0, 1fr);
+    grid-template-columns: 290px minmax(0, 1fr);
   }
   .document-heading {
     padding: 30px 28px 22px;
@@ -1603,7 +1606,7 @@ kbd {
 }
 @media (max-width: 950px) {
   .app-shell {
-    grid-template-columns: min(var(--sidebar-width, 270px), 270px) minmax(0, 1fr);
+    grid-template-columns: 270px minmax(0, 1fr);
   }
   .document-heading {
     display: block;
