@@ -250,7 +250,6 @@ a {
   display: grid;
   grid-template-columns: var(--sidebar-width, 320px) minmax(0, 1fr);
   overflow: hidden;
-  transition: grid-template-columns 180ms ease;
 }
 .app-shell.sidebar-resizing,
 .app-shell.sidebar-resizing * {
