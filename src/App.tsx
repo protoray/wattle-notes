@@ -10,6 +10,7 @@ import {
   History,
   Link2,
   Menu,
+  PanelLeftClose,
   PanelRight,
   Palette,
   Paperclip,
@@ -52,6 +53,40 @@ type Dialog =
   | null;
 const initialLinks: LinkInfo = { outbound: [], backlinks: [] };
 
+const DEFAULT_SIDEBAR_WIDTH = 320;
+const MIN_SIDEBAR_WIDTH = 240;
+const MAX_SIDEBAR_WIDTH = 600;
+const SNAP_COLLAPSE_THRESHOLD = 180;
+const SIDEBAR_WIDTH_KEY = 'wattle-notes:sidebar-width';
+const SIDEBAR_COLLAPSED_KEY = 'wattle-notes:sidebar-collapsed';
+
+function readInitialSidebarWidth(): number {
+  try {
+    const raw = localStorage.getItem(SIDEBAR_WIDTH_KEY);
+    if (raw !== null) {
+      const parsed = Number(raw);
+      if (Number.isFinite(parsed) && parsed >= MIN_SIDEBAR_WIDTH && parsed <= MAX_SIDEBAR_WIDTH) {
+        return Math.round(parsed);
+      }
+    }
+  } catch {
+    /* Storage can be unavailable in restricted environments. */
+  }
+  return DEFAULT_SIDEBAR_WIDTH;
+}
+
+function readInitialSidebarOpen(): boolean {
+  try {
+    const raw = localStorage.getItem(SIDEBAR_COLLAPSED_KEY);
+    if (raw !== null) {
+      return raw !== 'true';
+    }
+  } catch {
+    /* Storage can be unavailable in restricted environments. */
+  }
+  return true;
+}
+
 export default function App() {
   const [info, setInfo] = useState<VaultInfo | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -77,7 +112,97 @@ export default function App() {
   const [account, setAccount] = useState<AccountInfo | null>(null);
   const [theme, setTheme] = useState(readTheme);
   const dark = isDarkTheme(theme);
-  const [sidebar, setSidebar] = useState(true);
+  const [sidebar, setSidebar] = useState(readInitialSidebarOpen);
+  const [sidebarWidth, setSidebarWidth] = useState(readInitialSidebarWidth);
+  const [isResizing, setIsResizing] = useState(false);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, sidebar ? 'false' : 'true');
+    } catch {
+      /* Storage can be unavailable in restricted environments. */
+    }
+  }, [sidebar]);
+
+  const persistSidebarWidth = useCallback((width: number) => {
+    try {
+      localStorage.setItem(SIDEBAR_WIDTH_KEY, String(width));
+    } catch {
+      /* Storage can be unavailable in restricted environments. */
+    }
+  }, []);
+
+  const handleResizePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return;
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      /* Pointer capture is unavailable in some test environments. */
+    }
+    setIsResizing(true);
+  };
+
+  const handleResizePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!isResizing) return;
+    const maxWidth = Math.min(MAX_SIDEBAR_WIDTH, Math.floor(window.innerWidth * 0.5));
+    const nextWidth = event.clientX;
+    if (nextWidth < SNAP_COLLAPSE_THRESHOLD) {
+      setSidebarWidth(MIN_SIDEBAR_WIDTH);
+    } else {
+      const clamped = Math.max(MIN_SIDEBAR_WIDTH, Math.min(maxWidth, nextWidth));
+      setSidebarWidth(clamped);
+    }
+  };
+
+  const handleResizePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!isResizing) return;
+    setIsResizing(false);
+    try {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    } catch {
+      /* Ignore */
+    }
+    if (event.clientX < SNAP_COLLAPSE_THRESHOLD) {
+      setSidebar(false);
+    } else {
+      const maxWidth = Math.min(MAX_SIDEBAR_WIDTH, Math.floor(window.innerWidth * 0.5));
+      const finalWidth = Math.max(MIN_SIDEBAR_WIDTH, Math.min(maxWidth, event.clientX));
+      setSidebarWidth(finalWidth);
+      persistSidebarWidth(finalWidth);
+    }
+  };
+
+  const handleResizeReset = () => {
+    setSidebarWidth(DEFAULT_SIDEBAR_WIDTH);
+    persistSidebarWidth(DEFAULT_SIDEBAR_WIDTH);
+    setSidebar(true);
+  };
+
+  const handleResizeKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const maxWidth = Math.min(MAX_SIDEBAR_WIDTH, Math.floor(window.innerWidth * 0.5));
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      const next = Math.max(MIN_SIDEBAR_WIDTH, sidebarWidth - 16);
+      setSidebarWidth(next);
+      persistSidebarWidth(next);
+    } else if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      const next = Math.min(maxWidth, sidebarWidth + 16);
+      setSidebarWidth(next);
+      persistSidebarWidth(next);
+    } else if (event.key === 'Home') {
+      event.preventDefault();
+      setSidebarWidth(MIN_SIDEBAR_WIDTH);
+      persistSidebarWidth(MIN_SIDEBAR_WIDTH);
+    } else if (event.key === 'End') {
+      event.preventDefault();
+      setSidebarWidth(maxWidth);
+      persistSidebarWidth(maxWidth);
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      handleResizeReset();
+    }
+  };
   const hasVault = info !== null;
   const base = useRef<Note | null>(null);
   const documentGeneration = useRef(0);
@@ -318,6 +443,10 @@ export default function App() {
       if (event.key.toLowerCase() === 's') {
         event.preventDefault();
         actionRef.current.save();
+      }
+      if (event.key === '\\' || event.code === 'Backslash') {
+        event.preventDefault();
+        setSidebar((prev) => !prev);
       }
       if (event.key.toLowerCase() === 'p') {
         event.preventDefault();
@@ -618,15 +747,28 @@ export default function App() {
       </main>
     );
   return (
-    <div className={`app-shell ${!sidebar ? 'sidebar-hidden' : ''}`} inert={updates.busy}>
+    <div
+      className={`app-shell ${!sidebar ? 'sidebar-hidden' : ''} ${isResizing ? 'sidebar-resizing' : ''}`}
+      style={{ '--sidebar-width': `${sidebarWidth}px` } as React.CSSProperties}
+      inert={updates.busy}
+    >
       <aside className="sidebar">
         <div className="brand">
           <div className="brand-icon">
             <BookOpen size={19} />
           </div>
-          <span>
+          <span className="brand-title">
             wattle notes<span className="alpha">α</span>
           </span>
+          <button
+            type="button"
+            className="icon-button sidebar-collapse-button"
+            aria-label="Collapse notebook sidebar"
+            title="Collapse sidebar"
+            onClick={() => setSidebar(false)}
+          >
+            <PanelLeftClose size={17} />
+          </button>
         </div>
         <button className="vault-picker" onClick={() => void pickVault()} title={info.root}>
           <span className="vault-avatar">{info.name[0].toUpperCase()}</span>
@@ -725,6 +867,22 @@ export default function App() {
           }}
           onSettings={() => startDialog('settings')}
           onAppearance={() => startDialog('appearance')}
+        />
+        <div
+          className="sidebar-resizer"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize notebook sidebar"
+          aria-valuenow={sidebarWidth}
+          aria-valuemin={MIN_SIDEBAR_WIDTH}
+          aria-valuemax={Math.min(MAX_SIDEBAR_WIDTH, Math.floor(window.innerWidth * 0.5))}
+          tabIndex={0}
+          onPointerDown={handleResizePointerDown}
+          onPointerMove={handleResizePointerMove}
+          onPointerUp={handleResizePointerUp}
+          onPointerCancel={handleResizePointerUp}
+          onDoubleClick={handleResizeReset}
+          onKeyDown={handleResizeKeyDown}
         />
       </aside>
       <main className="workspace">

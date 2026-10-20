@@ -529,4 +529,114 @@ describe('Notebook and page creation', () => {
     await user.click(screen.getByRole('button', { name: 'New page' }));
     await screen.findByText('Saved in Work as Markdown.');
   });
+
+  describe('sidebar resizing and collapse', () => {
+    it('collapses and restores sidebar using the brand button, toolbar button, and keyboard shortcut', async () => {
+      const user = userEvent.setup();
+      const { container } = render(<App />);
+      await screen.findByLabelText('Markdown editor');
+
+      const appShell = container.querySelector('.app-shell') as HTMLElement;
+      expect(appShell.classList.contains('sidebar-hidden')).toBe(false);
+
+      // Collapse via brand button
+      const collapseButton = screen.getByRole('button', { name: 'Collapse notebook sidebar' });
+      await user.click(collapseButton);
+      expect(appShell.classList.contains('sidebar-hidden')).toBe(true);
+      expect(localStorage.getItem('wattle-notes:sidebar-collapsed')).toBe('true');
+
+      // Expand via toolbar button
+      const toggleButton = screen.getByRole('button', { name: 'Toggle notebook sidebar' });
+      await user.click(toggleButton);
+      expect(appShell.classList.contains('sidebar-hidden')).toBe(false);
+      expect(localStorage.getItem('wattle-notes:sidebar-collapsed')).toBe('false');
+
+      // Toggle via Cmd+\ / Ctrl+\
+      fireEvent.keyDown(window, { key: '\\', metaKey: true });
+      expect(appShell.classList.contains('sidebar-hidden')).toBe(true);
+      expect(localStorage.getItem('wattle-notes:sidebar-collapsed')).toBe('true');
+
+      fireEvent.keyDown(window, { key: '\\', ctrlKey: true });
+      expect(appShell.classList.contains('sidebar-hidden')).toBe(false);
+      expect(localStorage.getItem('wattle-notes:sidebar-collapsed')).toBe('false');
+    });
+
+    it('resizes sidebar with pointer dragging, keyboard, double click reset, and snaps below threshold', async () => {
+      const { container } = render(<App />);
+      await screen.findByLabelText('Markdown editor');
+
+      const appShell = container.querySelector('.app-shell') as HTMLElement;
+      const resizer = screen.getByRole('separator', { name: 'Resize notebook sidebar' });
+      expect(resizer.getAttribute('aria-valuenow')).toBe('320');
+      expect(appShell.style.getPropertyValue('--sidebar-width')).toBe('320px');
+
+      // Polyfill PointerEvent for JSDOM if needed
+      if (typeof window.PointerEvent === 'undefined') {
+        window.PointerEvent = window.MouseEvent as unknown as typeof PointerEvent;
+      }
+      resizer.setPointerCapture = vi.fn();
+      resizer.releasePointerCapture = vi.fn();
+
+      // Drag to 420px
+      act(() => {
+        fireEvent.pointerDown(resizer, { button: 0, pointerId: 1, clientX: 320 });
+      });
+      expect(appShell.classList.contains('sidebar-resizing')).toBe(true);
+
+      act(() => {
+        fireEvent.pointerMove(resizer, { pointerId: 1, clientX: 420 });
+      });
+      expect(resizer.getAttribute('aria-valuenow')).toBe('420');
+      expect(appShell.style.getPropertyValue('--sidebar-width')).toBe('420px');
+
+      act(() => {
+        fireEvent.pointerUp(resizer, { pointerId: 1, clientX: 420 });
+      });
+      expect(appShell.classList.contains('sidebar-resizing')).toBe(false);
+      expect(localStorage.getItem('wattle-notes:sidebar-width')).toBe('420');
+
+      // Double-click resets to default 320
+      act(() => {
+        fireEvent.doubleClick(resizer);
+      });
+      expect(resizer.getAttribute('aria-valuenow')).toBe('320');
+      expect(appShell.style.getPropertyValue('--sidebar-width')).toBe('320px');
+      expect(localStorage.getItem('wattle-notes:sidebar-width')).toBe('320');
+
+      // Keyboard navigation
+      act(() => {
+        fireEvent.keyDown(resizer, { key: 'ArrowRight' });
+      });
+      expect(resizer.getAttribute('aria-valuenow')).toBe('336');
+      expect(localStorage.getItem('wattle-notes:sidebar-width')).toBe('336');
+
+      act(() => {
+        fireEvent.keyDown(resizer, { key: 'ArrowLeft' });
+      });
+      expect(resizer.getAttribute('aria-valuenow')).toBe('320');
+
+      act(() => {
+        fireEvent.keyDown(resizer, { key: 'Home' });
+      });
+      expect(resizer.getAttribute('aria-valuenow')).toBe('240');
+
+      act(() => {
+        fireEvent.keyDown(resizer, { key: 'Enter' });
+      });
+      expect(resizer.getAttribute('aria-valuenow')).toBe('320');
+
+      // Drag below snap collapse threshold (180px)
+      act(() => {
+        fireEvent.pointerDown(resizer, { button: 0, pointerId: 2, clientX: 320 });
+      });
+      act(() => {
+        fireEvent.pointerMove(resizer, { pointerId: 2, clientX: 120 });
+      });
+      act(() => {
+        fireEvent.pointerUp(resizer, { pointerId: 2, clientX: 120 });
+      });
+      expect(appShell.classList.contains('sidebar-hidden')).toBe(true);
+      expect(localStorage.getItem('wattle-notes:sidebar-collapsed')).toBe('true');
+    });
+  });
 });

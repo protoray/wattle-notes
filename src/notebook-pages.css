@@ -28,28 +28,37 @@
   font-size: 12px;
 }
 .notebook-pages nav {
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: auto;
   flex: 1;
   min-height: 0;
   padding: 2px 3px 12px;
 }
-.notebook-tree,
+.notebook-tree {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 100%;
+  width: max-content;
+}
 .notebook-children {
   margin: 0;
   padding: 0;
   list-style: none;
-}
-.notebook-children {
   padding-left: 15px;
   border-left: 1px solid var(--line);
   margin-left: 9px;
+  min-width: 100%;
+  width: max-content;
 }
 .notebook-row {
   display: flex;
   align-items: center;
   border-radius: 6px;
   margin: 2px 0;
-  min-width: 0;
+  min-width: 100%;
+  width: max-content;
+  box-sizing: border-box;
 }
 .notebook-row.active {
   background: var(--accent-soft);
@@ -90,6 +99,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  max-width: 450px;
 }
 .notebook-name span {
   flex: 1;
@@ -116,8 +126,9 @@
   align-items: center;
   justify-content: flex-start;
   gap: 7px;
-  width: 100%;
-  min-width: 0;
+  width: max-content;
+  min-width: 100%;
+  box-sizing: border-box;
   margin: 2px 0;
   padding: 8px 7px;
   border: 1px solid transparent;
