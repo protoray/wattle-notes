@@ -1,11 +1,11 @@
 {
-  "version": "0.1.13",
-  "notes": "Wattle Notes 0.1.13 developer alpha. Google sign-in is configured in macOS, Linux and Windows distribution builds; standard release commands reject missing Google client configuration and native executables are checked before packaging upload. Download Linux x64 DEB and Windows x64 EXE/MSI installers from the matching GitHub release. macOS Apple Silicon in-app updates retain the established signing key and signed-version checks. Legacy note identity fields and application/credential identifiers remain stable to preserve existing notebooks, sync history and saved connections. Mostly vibe coded with AI assistance. The Mac bundle is ad-hoc signed, not Apple Developer ID signed or notarized; Windows installers are unsigned. Packaged Windows/Linux interactive sign-in and sync acceptance remain pending.",
-  "pub_date": "2026-10-20T10:41:06.014Z",
+  "version": "0.1.14",
+  "notes": "Wattle Notes 0.1.14 developer alpha. Google sign-in is configured in macOS, Linux and Windows distribution builds; standard release commands reject missing Google client configuration and native executables are checked before packaging upload. Download Linux x64 DEB and Windows x64 EXE/MSI installers from the matching GitHub release. macOS Apple Silicon in-app updates retain the established signing key and signed-version checks. Legacy note identity fields and application/credential identifiers remain stable to preserve existing notebooks, sync history and saved connections. Mostly vibe coded with AI assistance. The Mac bundle is ad-hoc signed, not Apple Developer ID signed or notarized; Windows installers are unsigned. Packaged Windows/Linux interactive sign-in and sync acceptance remain pending.",
+  "pub_date": "2026-10-21T13:13:51.031Z",
   "platforms": {
     "darwin-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTMFRwL3ZxSDU4UmdOVVAxRmpHK2RlQjkwSVJ2TFUvRzBkYVpkcU5YSmhWUEFOQ2k5M252cTNlOW50Z01wY0VvOHNUK1ZFb1V5NWYwbDBBMnNLbm9nbVJuSDM2bzhsaFFRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyNDkyODY0CWZpbGU6V2F0dGxlIE5vdGVzLmFwcC50YXIuZ3oJdmVyc2lvbjowLjEuMTMKM2JTM0FIZmFHdk0zcnppbDZOSTl2Zk9KNHpEZ3d4cnJYWGV5N1NEUHpTSU94S0E4a3o4ampTZ1IrV1hSbGQrYjl0NktsMzRzRndERFdBcTdXVWhNQXc9PQo=",
-      "url": "https://github.com/protoray/wattle-notes/releases/download/v0.1.13-alpha.1/wattle-notes-macos-arm64.app.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTMFRwL3ZxSDU4Uml3dmtYeFp0emswdW9SSlhEMXFHV1RERE92ZUZxSFV2b1NOa2cxeVBXd014VmhSSW9aZ0xtektKY0o4bDd6VlQxamFTNjVwL0JxaS9pSlptOFJTY1FBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzkyNTg4NDA0CWZpbGU6V2F0dGxlIE5vdGVzLmFwcC50YXIuZ3oJdmVyc2lvbjowLjEuMTQKcGIrUjJFaG5CTndoQU5JVXYxa0tkVGhzSzNscjBUSmZnUmpWZzBLYXVmbU1WNVdwRGM1d1YwTG1EVWdQTytoeU1yRmg0VkJiOVhMQUVkbXVFbU8rRGc9PQo=",
+      "url": "https://github.com/protoray/wattle-notes/releases/download/v0.1.14-alpha.1/wattle-notes-macos-arm64.app.tar.gz"
     }
   }
 }
