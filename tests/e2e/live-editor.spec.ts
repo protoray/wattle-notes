@@ -10,7 +10,7 @@ test('Read supports rendered editing, formatting, undo and source preservation a
   await dialog.getByRole('textbox').fill('Live editing');
   await dialog.getByRole('button', { name: 'Create', exact: true }).click();
   const source =
-    '# Title\n\nA **bold** sentence.\n\n- item\n\n[[A useful note]]\n\n```md\n[[literal]]\n```\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n<div>keep me</div>';
+    '# Title\n\nA **bold** and ***bold italic*** sentence.\n\n***\n\n- item\n\n[[A useful note]]\n\n```md\n[[literal]]\n```\n\n| a | b |\n|---|---|\n| 1 | 2 |\n\n<div>keep me</div>';
   const editor = page.locator('.cm-content');
   await editor.click();
   await page.keyboard.press(`${mod}+a`);
@@ -18,7 +18,9 @@ test('Read supports rendered editing, formatting, undo and source preservation a
   await page.getByRole('button', { name: 'Read', exact: true }).click();
   await expect(page.getByRole('toolbar', { name: 'Markdown formatting' })).toBeVisible();
   await expect(page.locator('.cm-live-h1')).toHaveText(' Title');
-  await expect(page.locator('.cm-live-bold')).toHaveText('bold');
+  await expect(page.locator('.cm-live-bold').first()).toHaveText('bold');
+  await expect(page.locator('.cm-live-italic .cm-live-bold')).toHaveText('bold italic');
+  await expect(page.locator('hr.cm-live-hr')).toBeVisible();
   await expect(page.locator('.reading-page a').first()).toHaveText('A useful note');
   // Put caret in a visible paragraph and edit without switching to the source view.
   await page.locator('.cm-line').filter({ hasText: 'sentence.' }).click();

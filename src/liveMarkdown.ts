@@ -50,6 +50,17 @@ class BulletWidget extends WidgetType {
     return bullet;
   }
 }
+class HorizontalRuleWidget extends WidgetType {
+  toDOM() {
+    const hr = document.createElement('hr');
+    hr.className = 'cm-live-hr';
+    hr.title = 'Click to edit horizontal rule';
+    return hr;
+  }
+  ignoreEvent() {
+    return false;
+  }
+}
 class TaskWidget extends WidgetType {
   constructor(
     readonly checked: boolean,
@@ -123,12 +134,29 @@ export function liveDecorations(view: EditorView, noteId: string): DecorationSet
         return false;
       }
       if (/^ATXHeading[1-6]$/.test(name)) lineClass(from, to, `cm-live-h${name.slice(-1)}`);
-      if (/^SetextHeading[12]$/.test(name)) lineClass(from, to, `cm-live-h${name.slice(-1)}`);
+      if (/^SetextHeading[12]$/.test(name)) {
+        const mark = node.getChild('HeaderMark');
+        const headingEnd = mark ? Math.max(from, mark.from - 1) : to;
+        lineClass(from, headingEnd, `cm-live-h${name.slice(-1)}`);
+        if (mark && !active(from, to)) {
+          lineClass(mark.from, mark.to, 'cm-live-setext-underline');
+        }
+      }
+      if (name === 'HorizontalRule') {
+        lineClass(from, to, 'cm-live-hr-line');
+        if (!active(from, to)) {
+          add(from, to, Decoration.replace({ widget: new HorizontalRuleWidget() }));
+        }
+        return false;
+      }
       if (name === 'Blockquote') lineClass(from, to, 'cm-live-quote');
       if (name === 'StrongEmphasis') add(from, to, Decoration.mark({ class: 'cm-live-bold' }));
       if (name === 'Emphasis') add(from, to, Decoration.mark({ class: 'cm-live-italic' }));
       if (name === 'Strikethrough') add(from, to, Decoration.mark({ class: 'cm-live-strike' }));
       if (name === 'InlineCode') add(from, to, Decoration.mark({ class: 'cm-live-code' }));
+      if (name === 'Escape' && text.length === 2 && text.startsWith('\\') && !active(from, to)) {
+        hide(from, from + 1);
+      }
       if (name === 'Image' && !text.includes('\n')) {
         if (!active(from, to)) {
           // Resolve reference images against the complete note before rendering
@@ -145,11 +173,48 @@ export function liveDecorations(view: EditorView, noteId: string): DecorationSet
         }
         return false;
       }
+      if (name === 'Autolink') {
+        const url = node.getChild('URL');
+        if (url) {
+          const target = state.sliceDoc(url.from, url.to);
+          add(
+            url.from,
+            url.to,
+            Decoration.mark({
+              tagName: 'a',
+              class: 'cm-live-link',
+              attributes: linkAttributes(target, false),
+            }),
+          );
+          if (!active(from, to)) {
+            hide(from, url.from);
+            hide(url.to, to);
+          }
+        }
+        return false;
+      }
+      if (
+        name === 'URL' &&
+        node.parent?.name !== 'Link' &&
+        node.parent?.name !== 'Autolink' &&
+        node.parent?.name !== 'Image' &&
+        node.parent?.name !== 'LinkReference'
+      ) {
+        add(
+          from,
+          to,
+          Decoration.mark({
+            tagName: 'a',
+            class: 'cm-live-link',
+            attributes: linkAttributes(text, false),
+          }),
+        );
+        return false;
+      }
       if (name === 'Link') {
         const url = node.getChild('URL');
         const first = node.firstChild;
         const labelEnd = first?.nextSibling;
-        // Inline links only. Reference/complex Markdown remains editable source.
         const closing = node
           .getChildren('LinkMark')
           .find((mark) => state.sliceDoc(mark.from, mark.to) === ']');
@@ -169,6 +234,22 @@ export function liveDecorations(view: EditorView, noteId: string): DecorationSet
             hide(from, first.to);
             hide(closing.from, to);
           }
+        } else if (!url && first && closing && !text.includes('\n')) {
+          const token = imageLexer
+            .inlineTokens(text)
+            .find((value): value is Tokens.Link => value.type === 'link');
+          if (token) {
+            const attrs = linkAttributes(token.href, false);
+            add(
+              first.to,
+              closing.from,
+              Decoration.mark({ tagName: 'a', class: 'cm-live-link', attributes: attrs }),
+            );
+            if (!active(from, to)) {
+              hide(from, first.to);
+              hide(closing.from, to);
+            }
+          }
         }
         return;
       }
@@ -180,8 +261,24 @@ export function liveDecorations(view: EditorView, noteId: string): DecorationSet
         add(from, to, Decoration.replace({ widget: new BulletWidget() }));
       }
       if (/^(HeaderMark|EmphasisMark|CodeMark|StrikethroughMark|QuoteMark)$/.test(name)) {
-        const parent = node.parent;
-        if (parent && !active(parent.from, parent.to)) hide(from, to);
+        if (name === 'QuoteMark') {
+          const line = state.doc.lineAt(from);
+          if (!active(line.from, line.to)) {
+            const hideEnd = state.sliceDoc(to, to + 1) === ' ' ? to + 1 : to;
+            hide(from, hideEnd);
+          }
+          return;
+        }
+        let targetParent = node.parent;
+        if (name === 'EmphasisMark') {
+          while (
+            targetParent?.parent &&
+            /^(Emphasis|StrongEmphasis)$/.test(targetParent.parent.name)
+          ) {
+            targetParent = targetParent.parent;
+          }
+        }
+        if (targetParent && !active(targetParent.from, targetParent.to)) hide(from, to);
       }
     },
   });

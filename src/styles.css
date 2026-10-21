@@ -1710,6 +1710,23 @@ kbd {
   font-style: italic;
   color: var(--muted);
 }
+.live-reading-page .cm-live-hr-line {
+  display: flex;
+  align-items: center;
+}
+.cm-live-hr {
+  display: block;
+  width: 100%;
+  border: 0;
+  border-top: 1px solid var(--divider);
+  margin: 0.65em 0;
+  cursor: text;
+}
+.live-reading-page .cm-live-setext-underline {
+  border-bottom: 1px solid var(--line);
+  min-height: 0.4em;
+  line-height: 0.4;
+}
 .cm-live-code,
 .cm-live-source-block {
   font-family: 'SFMono-Regular', Consolas, monospace;
