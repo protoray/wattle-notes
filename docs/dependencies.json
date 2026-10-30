@@ -5466,10 +5466,10 @@
   {
     "ecosystem": "npm",
     "name": "dompurify",
-    "version": "3.4.16",
+    "version": "3.4.17",
     "license": "(MPL-2.0 OR Apache-2.0)",
     "development": false,
-    "notice": "docs/dependency-licenses/npm-dompurify-3.4.16.txt"
+    "notice": "docs/dependency-licenses/npm-dompurify-3.4.17.txt"
   },
   {
     "ecosystem": "npm",

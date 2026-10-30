@@ -691,7 +691,7 @@ Bundled SQLite is public domain; libsqlite3-sys and rusqlite have their own wrap
 | npm | dequal 2.0.3 | MIT | [License text](docs/dependency-licenses/npm-dequal-2.0.3.txt) |
 | npm | detect-libc 2.1.2 | Apache-2.0 | [License text](docs/dependency-licenses/npm-detect-libc-2.1.2.txt) |
 | npm | dom-accessibility-api 0.5.16 | MIT | [License text](docs/dependency-licenses/npm-dom-accessibility-api-0.5.16.txt) |
-| npm | dompurify 3.4.16 | (MPL-2.0 OR Apache-2.0) | [License text](docs/dependency-licenses/npm-dompurify-3.4.16.txt) |
+| npm | dompurify 3.4.17 | (MPL-2.0 OR Apache-2.0) | [License text](docs/dependency-licenses/npm-dompurify-3.4.17.txt) |
 | npm | entities 6.0.1 | BSD-2-Clause | [License text](docs/dependency-licenses/npm-entities-6.0.1.txt) |
 | npm | es-module-lexer 2.3.2 | MIT | [License text](docs/dependency-licenses/npm-es-module-lexer-2.3.2.txt) |
 | npm | escape-string-regexp 4.0.0 | MIT | [License text](docs/dependency-licenses/npm-escape-string-regexp-4.0.0.txt) |
